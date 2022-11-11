@@ -311,14 +311,15 @@ samples_req = genfromtxt('num_samples.csv', delimiter=',')
 """
 #%%
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot(samples_req[3,:], samples_req[0,:], label ='number of samples required')
+ax.plot(samples_req[3,:], samples_req[0,:], label ='number of samples required, 1000 runs for each sample set')
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Number of samples', fontsize = 14)
 plt.title('Number of samples required for desired Standard deviation', fontsize = 16)
 plt.legend(fontsize = 12)
 # %%
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot(samples_req[3,:], samples_req[1,:])
+ax.plot(samples_req[3,:], samples_req[1,:], linewidth = 3)
+plt.fill_between(samples_req[3,:], np.max(samples_req[1,:]), np.min(samples_req[1,:]),  color = 'blue', alpha = 0.1, label = '{:.4f} minimum, {:.4f} maximum'.format(np.min(samples_req[1,:]), np.max(samples_req[1,:])))
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('sample standard deviation', fontsize = 14)
 plt.title('Standard deviation for increasing iterations', fontsize = 16)
@@ -332,6 +333,7 @@ plt.ylabel('Sample area of MandelBrot set', fontsize = 14)
 plt.title('Sample area for increasing iterations', fontsize = 16)
 plt.legend(fontsize = 12)
 ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+ax.axhline(y = np.mean(samples_req[2,:]), color = 'k', linestyle = '-.', label = 'Average area of the MandelBrot set')
 plt.ylim(1.49, 1.52)
 plt.legend(fontsize = 12)
 
@@ -458,3 +460,5 @@ plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 #%%
 
+
+# %%
