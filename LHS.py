@@ -47,4 +47,4 @@ def LHS(self, num_runs, nsamples, numiterations):
         area_mandel = ratio_inmandel*area_T        
 
         areas.append(area_mandel)
-    return area
+    return areas
