@@ -12,6 +12,8 @@ from numba import jit
 from timeit import default_timer as timer
 from tqdm import tqdm
 import scipy.stats as st
+import pylab 
+plt.style.use('seaborn')
 
 #%%
 #creating the mandelBort image firstly 
@@ -139,7 +141,7 @@ class mandeL_plot:
             area = self.compute_area_random(num_runs, i, num_iterations)
             area = np.array(area, dtype = np.float32)
             area = area.reshape(1,num_runs)
-            am = np.concatenate((am, area), axis = 0)
+            # am = np.concatenate((am, area), axis = 0)
 
         return am
 
@@ -160,7 +162,7 @@ class mandeL_plot:
         std = 0
         areas = 0
         while (d < k):
-            area = area = self.compute_area_random(num_runs, samples, num_iterations)
+            area = self.compute_area_random(num_runs, samples, num_iterations)
             area = np.array(area, dtype = np.float32)
             areas = np.mean(area)
             std_dev = np.std(area)
@@ -175,7 +177,7 @@ class mandeL_plot:
         num_runs = 100
         k = 100
         while (d < std):
-            area = area = self.compute_area_random(num_runs, num_samples, num_iterations)
+            area  = self.compute_area_random(num_runs, num_samples, num_iterations)
             area = np.array(area, dtype = np.float32)
             std_dev = np.std(area)
             std = std_dev
@@ -277,7 +279,6 @@ mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 
 #%#%#%#%#%#%#%#%#%#%#%# THIS HAS ALREADY BEEN PERFORMED #%#%#%#%#%#%#%#%#%#%%#%##
 
-
 # iterations = np.arange(1000, 10000, 100)
 # samples_varying_iterations = np.array([])
 # stds = np.array([])
@@ -297,8 +298,17 @@ mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 # data_for_iterations = data_for_iterations[1:]
 # np.savetxt("num_samples.csv", data_for_iterations, delimiter=",")
 #%%
+from numpy import genfromtxt
 samples_req = genfromtxt('num_samples.csv', delimiter=',')
 
+#%%
+"""using the above plots will determine the number of samples required for the 
+    simulations where we test the convergence of the area as we increase iterations
+    and as we  increase the number of samples. 
+
+    from the above experiment we see that 900 samlples is sufficient and will therefore
+    use 1000 for future experiments 
+"""
 #%%
 fig, ax = plt.subplots(figsize = (8,8))
 ax.plot(samples_req[3,:], samples_req[0,:], label ='number of samples required')
@@ -328,7 +338,7 @@ plt.legend(fontsize = 12)
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%%#%#% using the create area matrix function to store the data #%#%#%#%#%#%#%#%#%
 num_runs = 1000
-num_samples = np.arange(10, 12000, 100)
+num_samples = np.arange(10, 12000, 100, dtype = np.float32)
 num_iterations = 2000
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 
@@ -344,8 +354,35 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%# example of how to import the data #%#%#%#%#%#%#%#%#%#%#%
 from numpy import genfromtxt
 my_data = genfromtxt('AM_one.csv', delimiter=',')
+my_data.shape
+#%%
+"""firstly we want to evaluate the normality of the results to see if this is satisfactory 
+from here we can then include confidence intervals and use normal distrbution 
+testing methods 
+"""
+#%#%#%#%#%#%#%#%#%#%# checking the normality of the plots using a QQ and histogram #%#%#%#%#%#%#
+plt.style.use('seaborn')
+st.probplot(my_data[-1], dist="norm", plot=pylab)
+pylab.show()
 
 #%%
+#%#%#%#%#%#%#%#%#%#%#%# secondary check - histogram #%#%#%#%#%#%%#%#%#%#%#%#%%##
+from scipy.stats import norm
+mu, std = norm.fit(my_data[-1]) 
+xmin, xmax = np.min(my_data[-1]), np.max(my_data[-1])
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu, std)
+plt.plot(x, p, 'k', linewidth=2)
+plt.hist(my_data[-1], bins = 70, density=True)
+plt.xlabel('Area of mandelBrot set',  fontsize = 14)
+plt.ylabel('Number of occurences', fontsize = 14)
+plt.title('histogram of data generated', fontsize  = 16)
+
+#%%
+"""Going to now test the convergent behaviour as we increased the number of 
+samples while the number of iterations remain constant  
+"""
+
 #%#%#%#%#%#%#%#%#%#%#%#%#%#% generating the mean of all simulations along the rows #%#%#%#%#%#%
 mean = np.mean(my_data, axis = 1)
 mean.shape
@@ -374,6 +411,10 @@ plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 
 # %%
+""" We are now going to test how the average of the mandelbrot set converges 
+as we increase the number of iterations while keeping the number of samples 
+constant
+"""
 #%#%#%%#%#%#%#%#%#%#%%#%#%#%#%#%%# conducting the second test #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#%#%
 num_runs = 1000
 num_samples = 2000
@@ -411,8 +452,9 @@ std = np.std(my_data2, axis = 1)
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
 ax.plot( num_iterations, (std[1:]), label = 'Standard deviation')
-plt.ylim(0.05, 0.065)
+plt.ylim(0.05, 0.066)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 #%%
+
