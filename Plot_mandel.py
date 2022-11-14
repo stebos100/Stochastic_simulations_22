@@ -97,6 +97,58 @@ class mandeL_plot:
             samp.append(sample)
         
         return samp
+
+    def LHS(self, num_runs, nsamples, numiterations):
+
+        real_min = self.minx
+        real_max = self.maxx
+        imaginary_min = self.miny
+        imaginary_max = self.maxy
+
+        # make x an y spaces to form the hypercube 
+        x = np.linspace(real_min, real_max, nsamples+1)
+        y = np.linspace((imaginary_min), (imaginary_max), nsamples+1)
+
+
+        # make a list with x ranges consisting of pairs of x values that are consecutive in the linspace. 
+        x_ranges = []
+        y_ranges = []
+        for i in range(1, len(x)):
+            x_ranges.append([x[i - 1], x[i]])
+            y_ranges.append([y[i - 1], y[i]])
+
+        # Randomly shuffle the x and y pairs
+        random.shuffle(x_ranges)
+        random.shuffle(y_ranges)
+        
+        areas=[]
+
+        for i in range(num_runs):
+            in_mandel = 0
+            total_drawn = nsamples
+            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
+            samp = []
+
+            for j in range(nsamples):
+
+                # take last strata in list
+                x_range = x_ranges.pop()
+                y_range = y_ranges.pop()
+                
+                sample = complex(random.uniform(x_range[0], x_range[1]), random.uniform(y_range[0], y_range[1])) 
+
+                # check if in mandelbrotset
+                if self.within_mandel(numiterations, sample):
+                    in_mandel +=1
+
+                samp.append(sample)
+
+            ratio_inmandel = (in_mandel/total_drawn)
+            area_mandel = ratio_inmandel*area_T        
+
+            areas.append(area_mandel)
+        return areas
+
         
     # @staticmethod    
     def within_mandel(self, iterations, c): 
@@ -135,17 +187,20 @@ class mandeL_plot:
 
         return areas
 
-    def return_area_matrix_constant_iterations(self, num_runs, num_samples, num_iterations, areas_matrix):
+    # def compute_area_LHS(self, num_runs, nsamples, numiterations):
+
+
+    def return_area_matrix_constant_iterations_random(self, num_runs, num_samples, num_iterations, areas_matrix):
         am = areas_matrix
         for i in num_samples:
             area = self.compute_area_random(num_runs, i, num_iterations)
             area = np.array(area, dtype = np.float32)
             area = area.reshape(1,num_runs)
-            # am = np.concatenate((am, area), axis = 0)
+            am = np.concatenate((am, area), axis = 0)
 
         return am
 
-    def return_area_matrix_constant_samples(self, num_runs, num_samples, num_iterations, areas_matrix):
+    def return_area_matrix_constant_samples_random(self, num_runs, num_samples, num_iterations, areas_matrix):
         am = areas_matrix
         for i in num_iterations:
             area = self.compute_area_random(num_runs, num_samples, i)
@@ -154,6 +209,7 @@ class mandeL_plot:
             am = np.concatenate((am, area), axis = 0)
         
         return am
+
 
     def calculate_required_samples(self, num_runs, num_iterations, d):
 
@@ -184,6 +240,90 @@ class mandeL_plot:
             num_runs += 500
 
         return samples, std
+
+    def generate_LHS(self, num_runs, num_samples, num_iterations):
+        real_min = self.minx
+        real_max = self.maxx
+        imaginary_min = self.miny
+        imaginary_max = self.maxy
+
+        # make x an y spaces to form the hypercube 
+        x = np.linspace(real_min, real_max, num_samples+1)
+        y = np.linspace((imaginary_min), (imaginary_max), num_samples+1)
+
+        lhs_points = np.empty(shape=(num_samples, 2))
+        for i in range(num_samples):
+            lhs_points[i, 0] = np.random.uniform(x[i], x[i + 1])
+            lhs_points[i, 1] = np.random.uniform(y[i], y[i + 1])
+
+        np.random.shuffle(lhs_points[:, 1])
+        samples = [complex(lhs_points[n, 0], lhs_points[n , 1]) for n in range(len(lhs_points))]
+
+        return samples
+
+
+    def LHS(self, num_runs, nsamples, numiterations):
+
+        real_min = self.minx
+        real_max = self.maxx
+        imaginary_min = self.miny
+        imaginary_max = self.maxy
+
+        # make x an y spaces to form the hypercube 
+        x = np.linspace(real_min, real_max, nsamples+1)
+        y = np.linspace((imaginary_min), (imaginary_max), nsamples+1)
+
+
+        # make a list with x ranges consisting of pairs of x values that are consecutive in the linspace. 
+        x_ranges = []
+        y_ranges = []
+        for i in range(1, len(x)):
+            x_ranges.append([x[i - 1], x[i]])
+            y_ranges.append([y[i - 1], y[i]])
+
+        # Randomly shuffle the x and y pairs
+        np.random.shuffle(x_ranges)
+        np.random.shuffle(y_ranges)
+        
+        areas=[]
+
+        for i in range(num_runs):
+            in_mandel = 0
+            total_drawn = nsamples
+            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
+            samp = []
+
+            for j in range(nsamples):
+
+                # take last strata in list
+                x_range = x_ranges.pop()
+                y_range = y_ranges.pop()
+                
+                sample = complex(random.uniform(x_range[0], x_range[1]), random.uniform(y_range[0], y_range[1])) 
+
+                # check if in mandelbrotset
+                if self.within_mandel(numiterations, sample):
+                    in_mandel +=1
+
+                samp.append(sample)
+
+            ratio_inmandel = (in_mandel/total_drawn)
+            area_mandel = ratio_inmandel*area_T        
+
+            areas.append(area_mandel)
+        return areas
+
+
+    def return_area_matrix_constant_iterations_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
+        am = areas_matrix
+        for i in num_samples:
+            area = self.LHS(num_runs, i, num_iterations)
+            area = np.array(area, dtype = np.float32)
+            area = area.reshape(1,num_runs)
+            am = np.concatenate((am, area), axis = 0)
+
+        return am
+        
 
 
 
@@ -272,6 +412,56 @@ image = np.zeros((10000 * 2,  10000* 2), dtype = np.uint32)
 its = 1000
 
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
+
+
+#%%
+num_runs = 1000
+num_samples = np.arange(10, 12000, 100, dtype = np.float32)
+num_iterations = 2000
+areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
+
+
+
+#%%
+#%#%#%#%#%#%#%#%#%# firstly  show the difference between the LHS and random #%#%#%#%#%#%#%#%#%%#
+"""
+generating 400 samples of pure random sampling vs lhs 
+going to analyse the histograms of the plots and show how the method differs
+with a more balanced dispersion of points 
+"""
+samples = mandel.sampling_method_random(400)
+samps = mandel.generate_LHS(100, 400, 100)
+#%%
+x = [ele.real for ele in samps]
+x1 = [ele.real for ele in samples]
+y = [ele.imag for ele in samps]
+y1 = [ele.imag for ele in samples]
+
+
+kwargs = dict(histtype='stepfilled', alpha=0.3, normed=True, bins=40)
+
+fig, ax = plt.subplots(figsize = (8,8))
+ax.hist(x, **kwargs)
+ax.hist(y, **kwargs)
+ax.set_xlabel('values', fontsize = 14)
+ax.set_ylabel('count', fontsize = 14)
+plt.title('histogram of Latin hypercube sampling', fontsize = 16)
+
+fig, ax1 = plt.subplots(figsize = (8,8))
+ax1.hist([x1,y1])
+ax1.set_xlabel('values', fontsize = 14)
+ax1.set_ylabel('count', fontsize = 14)
+plt.title('histogram of Random sampling', fontsize = 16)
+
+
+#%%
+plt.hist([x1, y1])
+
+#%%
+areasLHS = mandel.LHS(num_runs, num_samples, num_iterations)
+# pd.DataFrame(areas).to_csv("area_matrix_one.csv")
+# np.savetxt("AM_one.csv", areas, delimiter=",")
+
 
 
 #%%
@@ -459,6 +649,5 @@ plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 #%%
-
-
+#%#%#%#%#%#%#%#%#%#%#%# 
 # %%
