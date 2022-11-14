@@ -63,6 +63,13 @@ class mandeL_plot:
         return 255
     
     def convert_to_pixels_plot(self):
+        """this function converts the coordinates into pixels to generate 
+        the images for plotting the mandelbrot set 
+
+        Returns:
+            image: returns the image of the mandelbrot set, this can then be used directlty 
+            for plotting
+        """
         image = self.image
         minx = self.minx
         maxx = self.maxx
@@ -85,6 +92,14 @@ class mandeL_plot:
         return image
 
     def sampling_method_random(self, numsamples):
+        """this function generates samples using numpy random 
+
+        Args:
+            numsamples (int): number of samples to be generated 
+
+        Returns:
+            complex list: list of generated samples in the imaginary and real space
+        """
         
         real_min = self.minx
         real_max = self.maxx
@@ -101,6 +116,16 @@ class mandeL_plot:
         
     # @staticmethod    
     def within_mandel(self, iterations, c): 
+        """this function takes the coordinates of the sample set and 
+        and determines if the sample coordinate converges
+
+        Args:
+            iterations (int): number of iterations to be performed 
+            c (complex coordinate): coordinate in mandelbrot space
+
+        Returns:
+            boolean: if the coordinate is convergent, return true
+        """
         z = 0
         for i in range(iterations):
             if np.abs(z) > 2:
@@ -110,6 +135,13 @@ class mandeL_plot:
         return True
 
     def compute_area_random(self, num_runs, nsamples, numiterations):
+
+        """this function generates a list of the computed areas for a number of iterations,
+        samples and number of runs 
+
+        Returns:
+            list(float32): generates and returns the list of the computed areas for all runs 
+        """
 
         real_min = self.minx
         real_max = self.maxx
@@ -138,6 +170,19 @@ class mandeL_plot:
 
 
     def return_area_matrix_constant_iterations_random(self, num_runs, num_samples, num_iterations, areas_matrix):
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of samples
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
         am = areas_matrix
         for i in num_samples:
             area = self.compute_area_random(num_runs, i, num_iterations)
@@ -148,6 +193,20 @@ class mandeL_plot:
         return am
 
     def return_area_matrix_constant_samples_random(self, num_runs, num_samples, num_iterations, areas_matrix):
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of iterations
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
+        
         am = areas_matrix
         for i in num_iterations:
             area = self.compute_area_random(num_runs, num_samples, i)
@@ -159,6 +218,16 @@ class mandeL_plot:
 
 
     def calculate_required_samples(self, num_runs, num_iterations, d):
+        """this function determines the number of samples 
+
+        Args:
+            num_runs (_type_): _description_
+            num_iterations (_type_): _description_
+            d (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
 
         samples = 900
         k = 100
@@ -243,6 +312,16 @@ class mandeL_plot:
             area = area.reshape(1,num_runs)
             am = np.concatenate((am, area), axis = 0)
 
+        return am
+
+    def return_area_matrix_constant_samples_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
+        am = areas_matrix
+        for i in num_iterations:
+            area = self.compute_area_LHS(num_runs, num_samples, i)
+            area = np.array(area, dtype = np.float32)
+            area = area.reshape(1,num_runs)
+            am = np.concatenate((am, area), axis = 0)
+        
         return am
         
 
@@ -559,16 +638,16 @@ testing the convergent behaviour as we increase the number of samples for each r
 """
 #%#%#%#%#%#%#%#%#%# TESTING THE AREA #%#%#%#%#%#%#%#%#
 num_runs = 1000
-num_samples = np.arange(1000, 10000, 500, dtype = np.int16)
 # this will be used to generate the larger matrix
-# num_samples = np.arange(10, 12000, 100, dtype = np.int16)
-num_iterations = 2000
+num_samples = np.arange(10, 12000, 100, dtype = np.int16)
+num_iterations = 2500
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
-
 #%%
-areas_lhs =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
-# np.savetxt("AM_one.csv", areas, delimiter=",")
-areas_lhs.shape
+# areas_lhs =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
+#np.savetxt("AM_LHS.csv", areas_lhs, delimiter=",")
+#%%
+areas_lhs = genfromtxt('AM_LHS.csv', delimiter=',')
+
 #%%
 # just neglecting the initialization of the matrix, ie the first row consists of zeros 
 areas_lhs = areas_lhs[1:,]
@@ -589,3 +668,28 @@ plt.xlabel('Number of samples', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
 plt.legend(fontsize = 12)
 # %%
+#%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
+std_LHS = np.std(areas_lhs, axis =1)
+std_LHS.shape
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, std_LHS, label = 'Standard deviation')
+plt.xlabel('Number of samples', fontsize = 14)
+plt.ylabel('Standard deviation of sample Area', fontsize = 14)
+plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+
+# %%
+""" We are now going to test how the average of the mandelbrot set converges 
+as we increase the number of iterations while keeping the number of samples 
+constant
+"""
+#%#%#%%#%#%#%#%#%#%#%%#%#%#%#%#%%# conducting the second test #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#%#%
+num_runs = 1000
+num_samples = 2000
+num_iterations = np.arange(100, 12000, 100, dtype = np.int16)
+areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
+
+#%%
+areas_lhs_its =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
+#np.savetxt("AM_LHS.csv", areas_lhs, delimiter=",")
