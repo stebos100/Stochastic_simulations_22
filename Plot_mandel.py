@@ -97,58 +97,6 @@ class mandeL_plot:
             samp.append(sample)
         
         return samp
-
-    def LHS(self, num_runs, nsamples, numiterations):
-
-        real_min = self.minx
-        real_max = self.maxx
-        imaginary_min = self.miny
-        imaginary_max = self.maxy
-
-        # make x an y spaces to form the hypercube 
-        x = np.linspace(real_min, real_max, nsamples+1)
-        y = np.linspace((imaginary_min), (imaginary_max), nsamples+1)
-
-
-        # make a list with x ranges consisting of pairs of x values that are consecutive in the linspace. 
-        x_ranges = []
-        y_ranges = []
-        for i in range(1, len(x)):
-            x_ranges.append([x[i - 1], x[i]])
-            y_ranges.append([y[i - 1], y[i]])
-
-        # Randomly shuffle the x and y pairs
-        random.shuffle(x_ranges)
-        random.shuffle(y_ranges)
-        
-        areas=[]
-
-        for i in range(num_runs):
-            in_mandel = 0
-            total_drawn = nsamples
-            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
-            samp = []
-
-            for j in range(nsamples):
-
-                # take last strata in list
-                x_range = x_ranges.pop()
-                y_range = y_ranges.pop()
-                
-                sample = complex(random.uniform(x_range[0], x_range[1]), random.uniform(y_range[0], y_range[1])) 
-
-                # check if in mandelbrotset
-                if self.within_mandel(numiterations, sample):
-                    in_mandel +=1
-
-                samp.append(sample)
-
-            ratio_inmandel = (in_mandel/total_drawn)
-            area_mandel = ratio_inmandel*area_T        
-
-            areas.append(area_mandel)
-        return areas
-
         
     # @staticmethod    
     def within_mandel(self, iterations, c): 
@@ -186,8 +134,6 @@ class mandeL_plot:
             areas.append(area_mandel)
 
         return areas
-
-    # def compute_area_LHS(self, num_runs, nsamples, numiterations):
 
 
     def return_area_matrix_constant_iterations_random(self, num_runs, num_samples, num_iterations, areas_matrix):
@@ -241,7 +187,7 @@ class mandeL_plot:
 
         return samples, std
 
-    def generate_LHS(self, num_runs, num_samples, num_iterations):
+    def generate_LHS(self, num_samples):
         real_min = self.minx
         real_max = self.maxx
         imaginary_min = self.miny
@@ -262,57 +208,59 @@ class mandeL_plot:
         return samples
 
 
-    def LHS(self, num_runs, nsamples, numiterations):
+    def compute_area_LHS(self, num_runs, nsamples, numiterations):
 
         real_min = self.minx
         real_max = self.maxx
         imaginary_min = self.miny
         imaginary_max = self.maxy
 
-        # make x an y spaces to form the hypercube 
-        x = np.linspace(real_min, real_max, nsamples+1)
-        y = np.linspace((imaginary_min), (imaginary_max), nsamples+1)
-
-
-        # make a list with x ranges consisting of pairs of x values that are consecutive in the linspace. 
-        x_ranges = []
-        y_ranges = []
-        for i in range(1, len(x)):
-            x_ranges.append([x[i - 1], x[i]])
-            y_ranges.append([y[i - 1], y[i]])
-
-        # Randomly shuffle the x and y pairs
-        np.random.shuffle(x_ranges)
-        np.random.shuffle(y_ranges)
-        
-        areas=[]
+        areas = []
 
         for i in range(num_runs):
             in_mandel = 0
             total_drawn = nsamples
             area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
-            samp = []
 
-            for j in range(nsamples):
+            samples = self.generate_LHS(nsamples)
 
-                # take last strata in list
-                x_range = x_ranges.pop()
-                y_range = y_ranges.pop()
-                
-                sample = complex(random.uniform(x_range[0], x_range[1]), random.uniform(y_range[0], y_range[1])) 
-
-                # check if in mandelbrotset
-                if self.within_mandel(numiterations, sample):
-                    in_mandel +=1
-
-                samp.append(sample)
+            for c in samples:
+                if (self.within_mandel(numiterations, c)):
+                    in_mandel += 1
 
             ratio_inmandel = (in_mandel/total_drawn)
             area_mandel = ratio_inmandel*area_T        
 
             areas.append(area_mandel)
-        return areas
 
+        return areas
+        
+    def compute_area_lhs(self, num_runs, nsamples, numiterations ):
+        
+        real_min = self.minx
+        real_max = self.maxx
+        imaginary_min = self.miny
+        imaginary_max = self.maxy
+
+        areas = []
+
+        for i in range(num_runs):
+            in_mandel = 0
+            total_drawn = nsamples
+            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
+
+            samples = self.LHS(num_runs, nsamples, numiterations)(numsamples)(nsamples)
+
+            for c in samples:
+                if (self.within_mandel(numiterations, c)):
+                    in_mandel += 1
+
+            ratio_inmandel = (in_mandel/total_drawn)
+            area_mandel = ratio_inmandel*area_T        
+
+            areas.append(area_mandel)
+
+        return areas
 
     def return_area_matrix_constant_iterations_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
         am = areas_matrix
@@ -438,20 +386,22 @@ y = [ele.imag for ele in samps]
 y1 = [ele.imag for ele in samples]
 
 
-kwargs = dict(histtype='stepfilled', alpha=0.3, normed=True, bins=40)
-
+kwargs = dict(histtype='stepfilled', alpha=0.3)
 fig, ax = plt.subplots(figsize = (8,8))
-ax.hist(x, **kwargs)
-ax.hist(y, **kwargs)
+ax.hist(x, **kwargs, label = 'real')
+ax.hist(y, **kwargs, label = 'imaginary')
 ax.set_xlabel('values', fontsize = 14)
 ax.set_ylabel('count', fontsize = 14)
 plt.title('histogram of Latin hypercube sampling', fontsize = 16)
+plt.legend(fontsize = 12)
 
 fig, ax1 = plt.subplots(figsize = (8,8))
-ax1.hist([x1,y1])
+ax1.hist(x1, **kwargs, label = 'real')
+ax1.hist(y1, **kwargs, label = 'imaginary')
 ax1.set_xlabel('values', fontsize = 14)
 ax1.set_ylabel('count', fontsize = 14)
 plt.title('histogram of Random sampling', fontsize = 16)
+plt.legend(fontsize = 12)
 
 
 #%%
