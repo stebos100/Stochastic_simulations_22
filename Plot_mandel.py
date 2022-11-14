@@ -13,6 +13,7 @@ from timeit import default_timer as timer
 from tqdm import tqdm
 import scipy.stats as st
 import pylab 
+from numpy import genfromtxt
 plt.style.use('seaborn')
 
 #%%
@@ -217,13 +218,12 @@ class mandeL_plot:
 
         areas = []
 
+        total_drawn = nsamples
+        area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
+
         for i in range(num_runs):
             in_mandel = 0
-            total_drawn = nsamples
-            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
-
             samples = self.generate_LHS(nsamples)
-
             for c in samples:
                 if (self.within_mandel(numiterations, c)):
                     in_mandel += 1
@@ -235,37 +235,10 @@ class mandeL_plot:
 
         return areas
         
-    def compute_area_lhs(self, num_runs, nsamples, numiterations ):
-        
-        real_min = self.minx
-        real_max = self.maxx
-        imaginary_min = self.miny
-        imaginary_max = self.maxy
-
-        areas = []
-
-        for i in range(num_runs):
-            in_mandel = 0
-            total_drawn = nsamples
-            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
-
-            samples = self.LHS(num_runs, nsamples, numiterations)(numsamples)(nsamples)
-
-            for c in samples:
-                if (self.within_mandel(numiterations, c)):
-                    in_mandel += 1
-
-            ratio_inmandel = (in_mandel/total_drawn)
-            area_mandel = ratio_inmandel*area_T        
-
-            areas.append(area_mandel)
-
-        return areas
-
     def return_area_matrix_constant_iterations_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
         am = areas_matrix
         for i in num_samples:
-            area = self.LHS(num_runs, i, num_iterations)
+            area = self.compute_area_LHS(num_runs, i, num_iterations)
             area = np.array(area, dtype = np.float32)
             area = area.reshape(1,num_runs)
             am = np.concatenate((am, area), axis = 0)
@@ -361,59 +334,6 @@ its = 1000
 
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 
-
-#%%
-num_runs = 1000
-num_samples = np.arange(10, 12000, 100, dtype = np.float32)
-num_iterations = 2000
-areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
-
-
-
-#%%
-#%#%#%#%#%#%#%#%#%# firstly  show the difference between the LHS and random #%#%#%#%#%#%#%#%#%%#
-"""
-generating 400 samples of pure random sampling vs lhs 
-going to analyse the histograms of the plots and show how the method differs
-with a more balanced dispersion of points 
-"""
-samples = mandel.sampling_method_random(400)
-samps = mandel.generate_LHS(100, 400, 100)
-#%%
-x = [ele.real for ele in samps]
-x1 = [ele.real for ele in samples]
-y = [ele.imag for ele in samps]
-y1 = [ele.imag for ele in samples]
-
-
-kwargs = dict(histtype='stepfilled', alpha=0.3)
-fig, ax = plt.subplots(figsize = (8,8))
-ax.hist(x, **kwargs, label = 'real')
-ax.hist(y, **kwargs, label = 'imaginary')
-ax.set_xlabel('values', fontsize = 14)
-ax.set_ylabel('count', fontsize = 14)
-plt.title('histogram of Latin hypercube sampling', fontsize = 16)
-plt.legend(fontsize = 12)
-
-fig, ax1 = plt.subplots(figsize = (8,8))
-ax1.hist(x1, **kwargs, label = 'real')
-ax1.hist(y1, **kwargs, label = 'imaginary')
-ax1.set_xlabel('values', fontsize = 14)
-ax1.set_ylabel('count', fontsize = 14)
-plt.title('histogram of Random sampling', fontsize = 16)
-plt.legend(fontsize = 12)
-
-
-#%%
-plt.hist([x1, y1])
-
-#%%
-areasLHS = mandel.LHS(num_runs, num_samples, num_iterations)
-# pd.DataFrame(areas).to_csv("area_matrix_one.csv")
-# np.savetxt("AM_one.csv", areas, delimiter=",")
-
-
-
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%# CHECKING THE NUMBER OF SAMPLES REQUIRED #%#%#%#%#%#%#%#%#%#%#%#
 
@@ -480,7 +400,7 @@ plt.legend(fontsize = 12)
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%%#%#% using the create area matrix function to store the data #%#%#%#%#%#%#%#%#%
 num_runs = 1000
-num_samples = np.arange(10, 12000, 100, dtype = np.float32)
+num_samples = np.arange(10, 12000, 100, dtype = np.int16)
 num_iterations = 2000
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 
@@ -515,7 +435,7 @@ xmin, xmax = np.min(my_data[-1]), np.max(my_data[-1])
 x = np.linspace(xmin, xmax, 100)
 p = norm.pdf(x, mu, std)
 plt.plot(x, p, 'k', linewidth=2)
-plt.hist(my_data[-1], bins = 70, density=True)
+plt.hist(my_data[-1], bins = 'auto', density=True)
 plt.xlabel('Area of mandelBrot set',  fontsize = 14)
 plt.ylabel('Number of occurences', fontsize = 14)
 plt.title('histogram of data generated', fontsize  = 16)
@@ -600,4 +520,72 @@ plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 #%%
 #%#%#%#%#%#%#%#%#%#%#%# 
+#%%
+#%#%#%#%#%#%#%#%#%# firstly  show the difference between the LHS and random #%#%#%#%#%#%#%#%#%%#
+"""
+generating 400 samples of pure random sampling vs lhs 
+going to analyse the histograms of the plots and show how the method differs
+with a more balanced dispersion of points 
+"""
+samples = mandel.sampling_method_random(500)
+samps = mandel.generate_LHS(500)
+#%%
+x = [ele.real for ele in samps]
+x1 = [ele.real for ele in samples]
+y = [ele.imag for ele in samps]
+y1 = [ele.imag for ele in samples]
+
+
+kwargs = dict(histtype='stepfilled', alpha=0.3)
+fig, ax = plt.subplots(figsize = (8,8))
+ax.hist(x, **kwargs, label = 'real')
+ax.hist(y, **kwargs, label = 'imaginary')
+ax.set_xlabel('values', fontsize = 14)
+ax.set_ylabel('count', fontsize = 14)
+plt.title('histogram of Latin hypercube sampling', fontsize = 16)
+plt.legend(fontsize = 12)
+
+fig, ax1 = plt.subplots(figsize = (8,8))
+ax1.hist(x1, **kwargs, label = 'real')
+ax1.hist(y1, **kwargs, label = 'imaginary')
+ax1.set_xlabel('values', fontsize = 14)
+ax1.set_ylabel('count', fontsize = 14)
+plt.title('histogram of Random sampling', fontsize = 16)
+plt.legend(fontsize = 12)
+
+#%%
+"""going to now generate the area matrix for LHS sampling and then plot the same figures as before
+testing the convergent behaviour as we increase the number of samples for each run 
+"""
+#%#%#%#%#%#%#%#%#%# TESTING THE AREA #%#%#%#%#%#%#%#%#
+num_runs = 1000
+num_samples = np.arange(1000, 10000, 500, dtype = np.int16)
+# this will be used to generate the larger matrix
+# num_samples = np.arange(10, 12000, 100, dtype = np.int16)
+num_iterations = 2000
+areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
+
+#%%
+areas_lhs =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
+# np.savetxt("AM_one.csv", areas, delimiter=",")
+areas_lhs.shape
+#%%
+# just neglecting the initialization of the matrix, ie the first row consists of zeros 
+areas_lhs = areas_lhs[1:,]
+areas_lhs.shape
+#%%
+#generating the confidence interval for the plots, neglecting the first one as its just one
+mean_lhs = np.mean(areas_lhs, axis = 1)
+cis2 = calculate_confidence_interval(areas_lhs)
+cis2 = cis2[1:]
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, (mean_lhs), label = 'Average Area for for 1000 runs, 2000 iterations')
+ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.fill_between(num_samples, cis2[:, :1].reshape(cis2.shape[0]), cis2[:, 1:].reshape(cis2.shape[0]),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of samples', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
+plt.legend(fontsize = 12)
 # %%
