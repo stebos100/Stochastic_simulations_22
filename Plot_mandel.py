@@ -536,6 +536,26 @@ mandel.orthogonal_sampling(10, 10, 10)
 # data_for_iterations = data_for_iterations[1:]
 # np.savetxt("num_samples.csv", data_for_iterations, delimiter=",")
 #%%
+area = mandel.compute_area_random(1000, 10000, 10000)
+#%%
+plt.style.use('seaborn')
+st.probplot(area, dist="norm", plot=pylab)
+pylab.show()
+
+#%%
+#%#%#%#%#%#%#%#%#%#%#%# secondary check - histogram #%#%#%#%#%#%%#%#%#%#%#%#%%##
+from scipy.stats import norm
+mu, std = norm.fit(area) 
+xmin, xmax = np.min(area), np.max(area)
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu, std)
+plt.plot(x, p, 'k', linewidth=2)
+plt.hist(my_data[-1], bins = 'auto', density=True)
+plt.xlabel('Area of mandelBrot set',  fontsize = 14)
+plt.ylabel('Number of occurences', fontsize = 14)
+plt.title('histogram of data generated', fontsize  = 16)
+
+#%%
 from numpy import genfromtxt
 samples_req = genfromtxt('num_samples.csv', delimiter=',')
 
@@ -574,6 +594,37 @@ ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the
 ax.axhline(y = np.mean(samples_req[2,:]), color = 'k', linestyle = '-.', label = 'Average area of the MandelBrot set')
 plt.ylim(1.49, 1.52)
 plt.legend(fontsize = 12)
+
+#%%
+"""
+now that we have established the baseline for the minimum number of samples
+we are going to look at the normality of the plot for 10 000 samples and 10 000 iterations
+"""
+#%%
+area = mandel.compute_area_random(1000, 10000, 10000)
+#%%
+plt.style.use('seaborn')
+st.probplot(area, dist="norm", plot=pylab)
+pylab.show()
+
+#%%
+#%#%#%#%#%#%#%#%#%#%#%# secondary check - histogram #%#%#%#%#%#%%#%#%#%#%#%#%%##
+from scipy.stats import norm
+mu, std = norm.fit(area) 
+xmin, xmax = np.min(area), np.max(area)
+x = np.linspace(xmin, xmax, 100)
+p = norm.pdf(x, mu, std)
+plt.plot(x, p, 'k', linewidth=2)
+plt.hist(my_data[-1], bins = 'auto', density=True)
+plt.xlabel('Area of mandelBrot set',  fontsize = 14)
+plt.ylabel('Number of occurences', fontsize = 14)
+plt.title('histogram of data generated', fontsize  = 16)
+
+#%%
+"""
+we will now investigate how the number of samples influence the convergence behaviour 
+of the area calculations
+"""
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%%#%#% using the create area matrix function to store the data #%#%#%#%#%#%#%#%#%
@@ -659,45 +710,43 @@ constant
 #%#%#%%#%#%#%#%#%#%#%%#%#%#%#%#%%# conducting the second test #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#%#%
 num_runs = 1000
 num_samples = 2000
-num_iterations = np.arange(100, 12000, 100)
+num_iterations = np.arange(10, 12000, 100, dtype= np.int16)
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 #%%
 
 #%#%#%%#%#%#%#%#%#%#%%#%#%#%#%#%%# convergence for increasing iterations #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#%#%
-# areas2 = mandel.return_area_matrix_constant_samples(num_runs, num_samples, num_iterations, areas_matrix)
-# import pandas as pd 
-# pd.DataFrame(areas2).to_csv("area_matrix_two.csv")
-# np.savetxt("AM_two.csv", areas2, delimiter=",")
-# %%
+# areas2 = mandel.return_area_matrix_constant_samples_random(num_runs, num_samples, num_iterations, areas_matrix)
+# areas2 = areas2[1:]
+# np.savetxt("AM_TWO_RETEST.csv", areas2, delimiter=",")
+#%%
+my_data2 = genfromtxt('AM_TWO_RETEST.csv', delimiter=',')
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%%# IMPORTING THE DATA #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#
-my_data2 = genfromtxt('AM_two.csv', delimiter=',')
+# my_data2 = genfromtxt('AM_two.csv', delimiter=',')
 #%#%#%#%#%#%#%#%#%#%#%#%#%#% generating the mean of all simulations along the rows #%#%#%#%#%#%
 #%%
-my_data2.shape
-
-
+my_data2 = my_data2[1:]
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#% plotting the mean to the true solution to test the convergence of the solution #%#%#%#%#%#%#%#%#%#%#%#%#%#%#
 mean2 = np.mean(my_data2, axis = 1)
-mean2 = mean2[1:]
+
 #%%
-cis2 = calculate_confidence_interval(my_data2[1:])
+cis2 = calculate_confidence_interval(my_data2)
 cis2 = cis2[1:]
 #%%
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot(num_iterations, (mean2), label = 'Average Area for for 1000 runs, 2000 samples')
+ax.plot(num_iterations[1:], (mean2), label = 'Average Area for for 1000 runs, 2000 samples')
 ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
-plt.fill_between(num_iterations, cis2[:, :1].reshape(119), cis2[:, 1:].reshape(119),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
+plt.fill_between(num_iterations[1:], cis2[:, :1].reshape(119), cis2[:, 1:].reshape(119),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
 plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
 plt.legend(fontsize = 12)
 #%%
-std = np.std(my_data2, axis = 1)
+std_2 = np.std(my_data2, axis = 1)
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot( num_iterations, (std[1:]), label = 'Standard deviation')
+ax.plot( num_iterations[1:], (std_2), label = 'Standard deviation')
 plt.ylim(0.05, 0.066)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
@@ -766,7 +815,7 @@ cis2 = cis2[1:]
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
 ax.plot(num_samples, (mean_lhs), label = 'Average Area for for 1000 runs, 2000 iterations')
-ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
 plt.fill_between(num_samples, cis2[:, :1].reshape(cis2.shape[0]), cis2[:, 1:].reshape(cis2.shape[0]),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
 plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of samples', fontsize = 14)
@@ -775,14 +824,24 @@ plt.legend(fontsize = 12)
 # %%
 #%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
 std_LHS = np.std(areas_lhs, axis =1)
-std_LHS.shape
 #%%
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot(num_samples, std_LHS, label = 'Standard deviation')
+ax.plot(num_samples, std_LHS, label = 'Standard deviation LHS')
 plt.xlabel('Number of samples', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+plt.legend(fontsize = 13)
+#%%
+#%#%#%#%#%#%# comparing to pure random sampling #%#%#%#%#%#%#%#%#%#%#
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, std_LHS, label = 'Standard deviation LHS')
+ax.plot(num_samples, std[1:], label = 'Standard deviation Random sampling')
+plt.xlabel('Number of samples', fontsize = 14)
+plt.ylabel('Standard deviation of sample Area', fontsize = 14)
+plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+plt.legend(fontsize = 13)
 
 # %%
 """ We are now going to test how the average of the mandelbrot set converges 
@@ -796,26 +855,35 @@ num_iterations = np.arange(100, 12000, 100, dtype = np.int16)
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 #%%
 #%#%#%#%#%#%# this has already been performed #%#%#%#%#%#%#%#%#%%#%#%#%#%#%#
-# areas_lhs_its =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
+# areas_lhs_its =mandel.return_area_matrix_constant_samples_LHS(num_runs, num_samples, num_iterations, areas_matrix)
 # np.savetxt("AM_LHS_ITS.csv", areas_lhs_its, delimiter=",")
+
 #%%
 areas_lhs_its = genfromtxt('AM_LHS_ITS.csv', delimiter=',')
 areas_lhs_its = areas_lhs_its[1:]
-areas_lhs_its
-# %%
 #%%
 mean_lhs_its = np.mean(areas_lhs_its, axis = 1)
-mean_lhs_its.shape
-
-#%%
 ci_its = calculate_confidence_interval(areas_lhs_its)
-ci_its = ci_its[2:]
-ci_its.shape
+ci_its = ci_its[1:]
+
 #%%
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot(num_iterations, mean_lhs_its[1:], label = 'Average Area for for 1000 runs, 2000 samples')
-ax.axhline(y = 1.5064, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+ax.plot(num_iterations, mean_lhs_its, label = 'Average Area for for 1000 runs, 2000 samples')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.fill_between(num_iterations, ci_its[:, :1].reshape(119), ci_its[:, 1:].reshape(119),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of iterations', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
+plt.legend(fontsize = 12)
+
+#%%
+#%#%#%#%#%#%#%# comparing with pure random sampling #%#%#%#%#%#%#%#%#%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_iterations, mean_lhs_its, label = 'LHS Average Area for for 1000 runs, 2000 samples')
+ax.plot(num_iterations, mean2, label = 'Average Area for for 1000 runs, 2000 samples')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
 plt.fill_between(num_iterations, ci_its[:, :1].reshape(119), ci_its[:, 1:].reshape(119),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
 plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of iterations', fontsize = 14)
@@ -825,10 +893,19 @@ plt.legend(fontsize = 12)
 std_its = np.std(areas_lhs_its, axis = 1)
 plt.style.use('seaborn')
 fig, ax = plt.subplots(figsize = (8,8))
-ax.plot( num_iterations, (std_its[1:]), label = 'Standard deviation')
+ax.plot( num_iterations, (std_its), label = 'Standard deviation')
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
-
+plt.ylim(0.033, 0.0395)
 # %%
-
+#%#%#%#%#%#%#%#% comparing to pure random sampling #%#%#%#%#%#%#%#%#%#%#%#%#%#
+std_its = np.std(areas_lhs_its, axis = 1)
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot( num_iterations, (std_its), label = 'Standard deviation LHS')
+ax.plot( num_iterations, (std_2), label = 'Standard deviation random sampling')
+plt.xlabel('Number of iterations', fontsize = 14)
+plt.ylabel('Standard deviation of sample Area', fontsize = 14)
+plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+# %%
