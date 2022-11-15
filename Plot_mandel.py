@@ -303,6 +303,7 @@ class mandeL_plot:
             areas.append(area_mandel)
 
         return areas
+
         
     def return_area_matrix_constant_iterations_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
         am = areas_matrix
@@ -511,8 +512,6 @@ its = 1000
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 
 #%%
-mandel.orthogonal_sampling(10, 10, 10)
-#%%
 #%#%#%#%#%#%#%#%#%#%#%#%# CHECKING THE NUMBER OF SAMPLES REQUIRED #%#%#%#%#%#%#%#%#%#%#%#
 
 #%#%#%#%#%#%#%#%#%#%#%# THIS HAS ALREADY BEEN PERFORMED #%#%#%#%#%#%#%#%#%#%%#%##
@@ -703,6 +702,23 @@ plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 
 # %%
+#%#%#%#%#%#%#%#%#%#%#%# plotting the computational cost associated with random sampling #%#%#%#%#%#
+num_iterations = np.arange(100, 10000, 100, dtype = np.int16)
+time = np.array([])
+for i in tqdm(num_iterations):
+    s = timer()
+    area = mandel.compute_area_random(100, 1000, i)
+    e = timer()
+    time = np.append(time, (e-s))
+
+#%%
+fig, axs  = plt.subplots(figsize = (8,8))
+axs.plot(num_iterations, time)
+plt.xlabel('number of iterations', fontsize = 14)
+plt.ylabel('time[s] for computation of area', fontsize = 14)
+plt.title('Computational cost assocaited with random sampling', fontsize = 16)
+
+#%%
 """ We are now going to test how the average of the mandelbrot set converges 
 as we increase the number of iterations while keeping the number of samples 
 constant
@@ -821,6 +837,19 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of samples', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
 plt.legend(fontsize = 12)
+
+
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, (mean_lhs), label = 'LHS Average Area for for 1000 runs, 2000 iterations')
+ax.plot(num_samples, (mean[1:]), label = 'Pure random Sampling Average Area for for 1000 runs, 2000 iterations')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.fill_between(num_samples, cis2[:, :1].reshape(cis2.shape[0]), cis2[:, 1:].reshape(cis2.shape[0]),  color = 'blue', alpha = 0.15, label = '95% confidence interval')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of samples', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
+plt.legend(fontsize = 12)
 # %%
 #%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
 std_LHS = np.std(areas_lhs, axis =1)
@@ -909,3 +938,20 @@ plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 # %%
+num_iterations = np.arange(100, 10000, 100, dtype = np.int16)
+time_LHS = np.array([])
+for i in tqdm(num_iterations):
+    s = timer()
+    area = mandel.compute_area_LHS(100, 1000, i)
+    e = timer()
+    time_LHS = np.append(time_LHS, (e-s))
+
+#%%
+fig, axs  = plt.subplots(figsize = (8,8))
+axs.plot(num_iterations, time_LHS)
+axs.plot(num_iterations, time)
+plt.xlabel('number of iterations', fontsize = 14)
+plt.ylabel('time[s] for computation of area', fontsize = 14)
+plt.title('Computational cost assocaited with random sampling', fontsize = 16)
+# %%
+
