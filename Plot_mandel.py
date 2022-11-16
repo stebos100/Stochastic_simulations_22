@@ -34,7 +34,7 @@ def calculate_confidence_interval(matrix):
     return cis
 
 
-def Hammersly_sampling_method(minx, maxx, miny, maxy, numsamples):
+def Hammersly_sampling_method(minx, maxx, miny, maxy, numsamples) -> list:
     real_min = minx
     real_max = maxx
     imaginary_min = miny
@@ -50,9 +50,9 @@ def Hammersly_sampling_method(minx, maxx, miny, maxy, numsamples):
 
     samps = samps.view(np.complex_)
 
-    samps = samps.reshape(1, 1000)
+    samps = samps.reshape(numsamples)
 
-    return samps    
+    return samps.tolist()    
 
 #%%    
 
@@ -481,7 +481,7 @@ class mandeL_plot:
             total_drawn = nsamples
             area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
 
-            samples = Hammersly_sampling_method(minx, maxx, miny, maxy, nsamples)
+            samples = Hammersly_sampling_method(minx, maxx, miny, maxy, nsamples).tolist()
 
             for c in samples:
                 if (self.within_mandel(numiterations, c)):
@@ -571,6 +571,11 @@ its = 1000
 
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 #%%
+sm = Hammersly_sampling_method(RE_START, RE_END, IM_START, IM_END, 10)
+type(sm)
+
+#%%
+area = mandel.compute_area_Hammersley(10, 10, 10)
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%# CHECKING THE NUMBER OF SAMPLES REQUIRED #%#%#%#%#%#%#%#%#%#%#%#
@@ -839,6 +844,9 @@ with a more balanced dispersion of points
 """
 samples = mandel.sampling_method_random(500)
 samps = mandel.generate_LHS(500)
+#%%
+type(samps)
+
 #%%
 x = [ele.real for ele in samps]
 x1 = [ele.real for ele in samples]
