@@ -15,8 +15,47 @@ import scipy.stats as st
 import pylab 
 from numpy import genfromtxt
 plt.style.use('seaborn')
+from skopt.space import Space
+from skopt.sampler import Lhs
+from skopt.sampler import Hammersly
 
 #%%
+#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% FUNCTIONS outside of the class #%#%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%%#%#%#%%#
+def calculate_confidence_interval(matrix):
+
+    cis = np.ones(shape = (1,2))
+
+    for i in matrix:
+        data = i 
+        interval = np.array(st.t.interval(alpha=0.95, df=(num_runs)-1, loc=np.mean(data), scale=st.sem(data)))
+        interval = interval.reshape(1,2)
+        cis = np.vstack((cis, interval))
+
+    return cis
+
+
+def Hammersly_sampling_method(minx, maxx, miny, maxy, numsamples):
+    real_min = minx
+    real_max = maxx
+    imaginary_min = miny
+    imaginary_max = maxy
+
+    space = Space([(real_min, real_max), (imaginary_min, imaginary_max)])
+
+    hammersly = Hammersly()
+
+    samples = hammersly.generate(space.dimensions, numsamples)
+
+    samps = np.array(samples, dtype = np.float64)
+
+    samps = samps.view(np.complex_)
+
+    samps = samps.reshape(1, 1000)
+
+    return samps    
+
+#%%    
+
 #creating the mandelBort image firstly 
 # adapted from http://numba.pydata.org/numba-doc/0.35.0/user/examples.html
 
@@ -58,7 +97,7 @@ class mandeL_plot:
         z = 0.0j
         for i in range(iterations):
             z = z*z + c 
-            if (z.real *z.real + z.imag *z.imag >= 2):
+            if (z.real *z.real + z.imag *z.imag >= 4):
                 return i
         return 255
     
@@ -419,27 +458,48 @@ class mandeL_plot:
 
             areas.append(area_mandel)
 
-        return areas         
+        return areas       
+
+    def compute_area_Hammersley(self, num_runs, nsamples, numiterations):
+
+        """this function generates a list of the computed areas for a number of iterations,
+        samples and number of runs 
+
+        Returns:
+            list(float32): generates and returns the list of the computed areas for all runs 
+        """
+
+        real_min = self.minx
+        real_max = self.maxx
+        imaginary_min = self.miny
+        imaginary_max = self.maxy
+
+        areas = []
+
+        for i in range(num_runs):
+            in_mandel = 0
+            total_drawn = nsamples
+            area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
+
+            samples = Hammersly_sampling_method(minx, maxx, miny, maxy, nsamples)
+
+            for c in samples:
+                if (self.within_mandel(numiterations, c)):
+                    in_mandel += 1
+
+            ratio_inmandel = (in_mandel/total_drawn)
+            area_mandel = ratio_inmandel*area_T        
+
+            areas.append(area_mandel)
+
+        return areas
+
         
         
-
-
+#%%
+#%#%#%#%#%#%#% trying the lhs sampling optimizations #%#%%#%#%#%#%#%#%#%#
 
 #%%
-#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% FUNCTIONS outside of the class #%#%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%%#%#%#%%#
-def calculate_confidence_interval(matrix):
-
-    cis = np.ones(shape = (1,2))
-
-    for i in matrix:
-        data = i 
-        interval = np.array(st.t.interval(alpha=0.95, df=(num_runs)-1, loc=np.mean(data), scale=st.sem(data)))
-        interval = interval.reshape(1,2)
-        cis = np.vstack((cis, interval))
-
-    return cis
-
-
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% Creating the mandel brot set plot #%#%#%#%#%#%#%#%#%#%#%#%#%#
 '''Creating the mandel brot set plot'''
@@ -464,8 +524,8 @@ ax.set_xticks([])
 ax.set_yticks([])
 ax.set_ylabel('Im', fontsize = 14)
 ax.set_xlabel("Re", fontsize = 14)
-plt.show()
 plt.savefig("mandel_plot.png", dpi = 700,  bbox_inches = 'tight', format = 'png' )
+plt.show()
 #%%
 
 #%#%#%#%#%#%##%#%#%##%#%#%# creating a second plot which zooms in on the intersting areas #%#%#%#%#%#%#%#%#
@@ -510,6 +570,7 @@ image = np.zeros((10000 * 2,  10000* 2), dtype = np.uint32)
 its = 1000
 
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
+#%%
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%# CHECKING THE NUMBER OF SAMPLES REQUIRED #%#%#%#%#%#%#%#%#%#%#%#
@@ -955,3 +1016,20 @@ plt.ylabel('time[s] for computation of area', fontsize = 14)
 plt.title('Computational cost assocaited with random sampling', fontsize = 16)
 # %%
 
+samps = Hammersly_sampling_method(RE_START, RE_END, IM_START, IM_END, 1000)
+
+x = [ele.real for ele in samps]
+y = [ele.imag for ele in samps]
+
+#%%
+kwargs = dict(alpha=0.3)
+fig, ax = plt.subplots(figsize = (8,8))
+ax.hist(x, label = 'real')
+ax.hist(y, label = 'imaginary')
+ax.set_xlabel('values', fontsize = 14)
+ax.set_ylabel('count', fontsize = 14)
+plt.title('histogram of Latin hypercube sampling', fontsize = 16)
+plt.legend(fontsize = 12)
+
+
+# %%
