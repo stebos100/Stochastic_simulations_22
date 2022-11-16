@@ -1020,14 +1020,14 @@ num_iterations = 2500
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 #%%
 areas_ortho = mandel.return_area_matrix_constant_iterations_ortho(num_runs, num_samples, num_iterations, areas_matrix)
-np.savetxt("AM_ortho.csv", areas_lhs, delimiter=",")
+np.savetxt("AM_ortho.csv", areas_ortho, delimiter=",")
 
 
 # In[ ]:
 
 
 #%%
-areas_lhs = genfromtxt('AM_ortho.csv', delimiter=',')
+areas_ortho = genfromtxt('AM_ortho.csv', delimiter=',')
 
 #%%
 # just neglecting the initialization of the matrix, ie the first row consists of zeros 
