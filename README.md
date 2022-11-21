@@ -1,4 +1,5 @@
-# Stochastic_simulations_22
+# Stochastic_simulations_22_assignment_1
+
 Herewith lies all relevant materials for the projects pertaining to Stochastic Simulations assignment 1
 for students - Stephan Bosch 13555383 and Yke Sijpestijn 11329157.
 
