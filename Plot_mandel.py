@@ -17,11 +17,19 @@ from numpy import genfromtxt
 plt.style.use('seaborn')
 from skopt.space import Space
 from skopt.sampler import Lhs
-from skopt.sampler import Hammersly
+from scipy.stats import qmc
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% FUNCTIONS outside of the class #%#%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%%#%#%#%%#
 def calculate_confidence_interval(matrix):
+    """This function generates a 95% confidence interval for a matrix of areas calculated using MC simulations
+
+    Args:
+        matrix (numpy array 2D): matrix containing all area computations
+
+    Returns:
+        numpy array: array of confidence intervals for the average of each simulation
+    """
 
     cis = np.ones(shape = (1,2))
 
@@ -34,29 +42,11 @@ def calculate_confidence_interval(matrix):
     return cis
 
 
-def Hammersly_sampling_method(minx, maxx, miny, maxy, numsamples):
-    real_min = minx
-    real_max = maxx
-    imaginary_min = miny
-    imaginary_max = maxy
-
-    space = Space([(float(real_min), float(real_max)), (float(imaginary_min), float(imaginary_max))])
-
-    hammersly = Hammersly(min_skip=1, max_skip=2, primes=None)
-
-    samples = hammersly.generate(space.dimensions, numsamples)
-
-    samps = np.array(samples, dtype = np.float64)
-
-    samps = samps.view(np.complex_)
-
-    samps = samps.reshape(numsamples)
-
-    return samps.tolist()
-
 #%%
-#creating the mandelBort image firstly 
-# adapted from http://numba.pydata.org/numba-doc/0.35.0/user/examples.html
+"""creating a jit class which has all the functions necessary for all computaions involving calculating the area of the 
+Mandelbrot set
+"""
+
 
 from numba import int16, float32 , uint8 , uint32, complex64, prange,objmode
 from numba.experimental import jitclass
@@ -256,15 +246,16 @@ class mandeL_plot:
 
 
     def calculate_required_samples(self, num_runs, num_iterations, d):
-        """this function determines the number of samples 
+        """this function determines the number of samples required to meet the specified parameter d 
 
         Args:
-            num_runs (_type_): _description_
-            num_iterations (_type_): _description_
-            d (_type_): _description_
+            num_runs (int): number of runs to be performed for the simulation       
+            num_iterations (int): number of iterations to be perfomred to determine if it is convergent
+            d (float32): _description_
 
         Returns:
-            _type_: _description_
+            int, float64, int: returns the required number of samples to meet the specified requirements, the standard deviation 
+            after this requirement has been met, and the area of the mandelbrot set once the requirement has been met
         """
 
         samples = 900
@@ -284,6 +275,12 @@ class mandeL_plot:
 
     def calculate_required_number_of_runs(self, num_iterations, num_samples):
 
+        """calculates the number of simulations required for a specified standard deviation
+
+        Returns:
+            int, float64: returns the number of runs for a specified standard deviation 
+        """
+
         num_runs = 100
         k = 100
         while (d < std):
@@ -296,6 +293,15 @@ class mandeL_plot:
         return samples, std
 
     def generate_LHS(self, num_samples):
+        """generates a set of samples using lating hypercube sampling
+
+        Args:
+            num_samples (int): number of samples to be generated
+
+        Returns:
+            list: returns a list with the specified number of samples using LHS 
+        """
+
         real_min = self.minx
         real_max = self.maxx
         imaginary_min = self.miny
@@ -317,6 +323,15 @@ class mandeL_plot:
 
 
     def compute_area_LHS(self, num_runs, nsamples, numiterations):
+
+        """this function generates a list of the computed areas for a number of iterations,
+        samples and number of runs 
+
+        Returns:
+            list(float32): generates and returns the list of the computed areas for all runs 
+            using LHS
+        """
+
 
         real_min = self.minx
         real_max = self.maxx
@@ -344,6 +359,20 @@ class mandeL_plot:
 
         
     def return_area_matrix_constant_iterations_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
+
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of samples using lating hypercube sampling
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
         am = areas_matrix
         for i in num_samples:
             area = self.compute_area_LHS(num_runs, i, num_iterations)
@@ -354,6 +383,21 @@ class mandeL_plot:
         return am
 
     def return_area_matrix_constant_samples_LHS(self, num_runs, num_samples, num_iterations, areas_matrix):
+
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of iterations using latin hypercube sampling
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
+
         am = areas_matrix
         for i in num_iterations:
             area = self.compute_area_LHS(num_runs, num_samples, i)
@@ -365,8 +409,14 @@ class mandeL_plot:
 
 
     def orthogonal_sample(self, numsamples):
-        """
-        Generate a list of orthogonally sampled complex numbers.
+        """generates orthogonal samples for the specified number of samples
+
+        Args:
+            numsamples (int): the number of orthogonally sampled points to be generated
+
+        Returns:
+            list: a list containing (numsamples) amount of samples which will be used
+            in the area computation
         """
 
         real_min = self.minx
@@ -397,6 +447,14 @@ class mandeL_plot:
     
     def compute_area_ortho(self, num_runs, nsamples, numiterations):
 
+        """this function generates a list of the computed areas for a number of iterations,
+        samples and number of runs 
+
+        Returns:
+            list(float32): generates and returns the list of the computed areas for all runs 
+            using orthogonal sampling
+        """
+
         real_min = self.minx
         real_max = self.maxx
         imaginary_min = self.miny
@@ -424,6 +482,20 @@ class mandeL_plot:
 
 
     def return_area_matrix_constant_iterations_ortho(self, num_runs, num_samples, num_iterations, areas_matrix):
+
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of samples using orthogonal sampling
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
         am = areas_matrix
         for i in num_samples:
             area = self.compute_area_ortho(num_runs, i, num_iterations)
@@ -434,6 +506,21 @@ class mandeL_plot:
         return am
     
     def return_area_matrix_constant_samples_ortho(self, num_runs, num_samples, num_iterations, areas_matrix):
+
+        """generates a numpy matrix for the computed areas ans using concatenate stacks the results in a 2d matrix 
+        this can be used to compare the convergent behaviour of all simulations. 
+        this is specifically for varying number of iterations using lating hypercube sampling
+
+        Args:
+            num_runs (int): number of runs/simulations which need to be performed
+            num_samples (int): number of samples drawn to evaluate the area of the mandelbrot set
+            num_iterations (int): number of iterations to be satisfied to compute convergence
+            areas_matrix (numpy array(2D)): area matrix for storing simulation results 
+
+        Returns:
+            numpy array(2D): returns the area matrix for all simulations 
+        """
+
         am = areas_matrix
         for i in num_iterations:
             area = self.compute_area_ortho(num_runs, num_samples, i)
@@ -443,11 +530,24 @@ class mandeL_plot:
         
         return am
 
-    def hammersley_area(self, samples, num_iterations, samplesize):
+    def compute_area_manual(self, samples, num_iterations, samplesize):
+        """this function computes the area for a given number of iterations, and accepts three arguments
+        this function was specifically used for sobol sampling
+
+        Args:
+            samples (numpy array): array containing a sample set to be used for area calculations 
+            num_iterations (int): integer value for the number of iterations to be performed 
+            samplesize (int): number of samples used to determine the ratio of the number of samples
+            drawn vs the number of samples which lie in the mandelbrot set
+
+        Returns:
+            list: a list containing the areas calculated using the sampling method
+        """
         real_min = self.minx
         real_max = self.maxx
         imaginary_min = self.miny
         imaginary_max = self.maxy
+
 
         areas = []
 
@@ -465,54 +565,8 @@ class mandeL_plot:
 
         areas.append(area_mandel)
 
-        return areas
-
-    
-
-
-
-
-
-    # def compute_area_Hammersley(self, num_runs, nsamples, numiterations):
-
-    #     """this function generates a list of the computed areas for a number of iterations,
-    #     samples and number of runs 
-
-    #     Returns:
-    #         list(float32): generates and returns the list of the computed areas for all runs 
-    #     """
-
-    #     real_min = self.minx
-    #     real_max = self.maxx
-    #     imaginary_min = self.miny
-    #     imaginary_max = self.maxy
-
-    #     areas = []
-
-    #     for i in range(num_runs):
-    #         in_mandel = 0
-    #         total_drawn = nsamples
-    #         area_T =  np.abs((real_min - real_max))*np.abs(imaginary_max - imaginary_min)
-
-    #         samples = Hammersly_sampling_method(minx, maxx, miny, maxy, nsamples).tolist()
-
-    #         for c in samples:
-    #             if (self.within_mandel(numiterations, c)):
-    #                 in_mandel += 1
-
-    #         ratio_inmandel = (in_mandel/total_drawn)
-    #         area_mandel = ratio_inmandel*area_T        
-
-    #         areas.append(area_mandel)
-
-    #     return areas
-
+        return areas        
         
-        
-#%%
-#%#%#%#%#%#%#% trying the lhs sampling optimizations #%#%%#%#%#%#%#%#%#%#
-
-#%%
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% Creating the mandel brot set plot #%#%#%#%#%#%#%#%#%#%#%#%#%#
 '''Creating the mandel brot set plot'''
@@ -569,11 +623,11 @@ ax.set_yticks([])
 ax.set_ylabel('Im', fontsize = 14)
 ax.set_xlabel("Re", fontsize = 14)
 plt.show()
-plt.savefig("mandel_plot_second.pdf", dpi = 900,  bbox_inches = 'tight', format = 'pdf' )
+# plt.savefig("mandel_plot_second.pdf", dpi = 900,  bbox_inches = 'tight', format = 'pdf' )
 
 
 #%%
-#%#%#%# start here #%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%#%#%#%# %#%#%#%#%#%#%#  start here %#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#
 #%#%%#%#%#%#%#%#%#%#%#%#%#%#% Creating a second class instance for testing convergence #%#%#%#%#%#%#%#%#%#%#%#
 RE_START = -2.0
 RE_END = 1.0
@@ -584,29 +638,6 @@ its = 1000
 
 mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 #%%
-#%#%#%#%#%#%#%#%#%#%#%#%# CHECKING THE NUMBER OF SAMPLES REQUIRED #%#%#%#%#%#%#%#%#%#%#%#
-
-#%#%#%#%#%#%#%#%#%#%#%# THIS HAS ALREADY BEEN PERFORMED #%#%#%#%#%#%#%#%#%#%%#%##
-
-# iterations = np.arange(1000, 10000, 100)
-# samples_varying_iterations = np.array([])
-# stds = np.array([])
-# areas = np.array([])
-
-# for i in tqdm(iterations):
-#     samples_varying_iterations = np.append(samples_varying_iterations, mandel.calculate_required_samples(1000, i, 0.005)[0])
-#     stds = np.append(stds, mandel.calculate_required_samples(1000, i, 0.005)[1])
-#     areas = np.append(areas,  mandel.calculate_required_samples(1000, i, 0.005)[2])
-
-# #%%
-# data_for_iterations = np.zeros(shape= (1, 90))
-# data_for_iterations = np.concatenate((data_for_iterations, samples_varying_iterations.reshape(1,90)))
-# data_for_iterations = np.concatenate((data_for_iterations, stds.reshape(1,90)))
-# data_for_iterations = np.concatenate((data_for_iterations, areas.reshape(1,90)))
-# data_for_iterations = np.concatenate((data_for_iterations, iterations.reshape(1,90)))
-# data_for_iterations = data_for_iterations[1:]
-# np.savetxt("num_samples.csv", data_for_iterations, delimiter=",")
-#%%
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
@@ -615,7 +646,7 @@ mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
 
 #%%
 from numpy import genfromtxt
-samples_req = genfromtxt('num_samples.csv', delimiter=',')
+samples_req = genfromtxt('CSV/num_samples.csv', delimiter=',')
 
 #%%
 """using the above plots will determine the number of samples required for the 
@@ -632,7 +663,7 @@ plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Number of samples', fontsize = 14)
 plt.title('Number of samples required for desired Standard deviation', fontsize = 16)
 plt.legend(fontsize = 14)
-plt.savefig("REQUIRED_NO_SAMPLES.png", dpi = 400,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("REQUIRED_NO_SAMPLES.png", dpi = 400,  bbox_inches = 'tight', format = 'png' )
 
 # %%
 fig, ax = plt.subplots(figsize = (8,8))
@@ -643,7 +674,7 @@ plt.ylabel('sample standard deviation', fontsize = 14)
 plt.title('Standard deviation for increasing iterations', fontsize = 16)
 plt.legend(fontsize = 12)
 plt.ylim(0.08, 0.105)
-plt.savefig("REQUIRED_NO_SAMPLES_STANDARD_DEVIATION.png", dpi = 400,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("REQUIRED_NO_SAMPLES_STANDARD_DEVIATION.png", dpi = 400,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 fig, ax = plt.subplots(figsize = (8,8))
@@ -674,14 +705,15 @@ interval
 # area = mandel.compute_area_random(1000, 10000, 10000)
 # np.savetxt("AREA_MAX.csv", area, delimiter=",")
 #%%
-area = genfromtxt('AREA_MAX.csv', delimiter=',')
+area = genfromtxt('CSV/AREA_MAX.csv', delimiter=',')
+
 #%%
 plt.style.use('seaborn')
 st.probplot(area, dist="norm", plot=pylab)
 plt.title('Quantile Qunatile plot', fontsize = 16)
 plt.xlabel('Theoretical quantiles', fontsize = 14)
 plt.ylabel('Ordered values', fontsize = 14)
-plt.savefig("NORMALITY_TEST_QQ.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("NORMALITY_TEST_QQ.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
@@ -696,7 +728,7 @@ plt.hist(area, bins = 'auto', density=True)
 plt.xlabel('Area of mandelBrot set',  fontsize = 14)
 plt.ylabel('Number of occurences', fontsize = 14)
 plt.title('histogram of data generated', fontsize  = 16)
-plt.savefig("NORMALITY_TEST_HIST.png", dpi = 600,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("NORMALITY_TEST_HIST.png", dpi = 600,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
@@ -762,7 +794,7 @@ testing methods
 
 #%%
 from numpy import genfromtxt
-my_data = genfromtxt('AM_one.csv', delimiter=',')
+my_data = genfromtxt('CSV/AM_one.csv', delimiter=',')
 my_data.shape
 
 """Going to now test the convergent behaviour as we increased the number of 
@@ -786,7 +818,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of samples', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("RANDOM_CONSTANT_ITERATIONS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("RANDOM_CONSTANT_ITERATIONS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%# plotting the standard devuation  of the resulst obtained #%#%#%#%#%#%#%#
@@ -797,7 +829,7 @@ ax.plot(num_samples, (std[1:]), label = 'Standard deviation')
 plt.xlabel('Number of samples', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of Standard deviation', fontsize = 16)
-plt.savefig("RANDOM_CONSTANT_ITERATIONS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("RANDOM_CONSTANT_ITERATIONS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
@@ -822,7 +854,7 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 # areas2 = areas2[1:]
 # np.savetxt("AM_TWO_RETEST.csv", areas2, delimiter=",")
 #%%
-my_data2 = genfromtxt('AM_TWO_RETEST.csv', delimiter=',')
+my_data2 = genfromtxt('CSV/AM_TWO_RETEST.csv', delimiter=',')
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%%# IMPORTING THE DATA #%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#
 # my_data2 = genfromtxt('AM_two.csv', delimiter=',')
 #%#%#%#%#%#%#%#%#%#%#%#%#%#% generating the mean of all simulations along the rows #%#%#%#%#%#%
@@ -841,7 +873,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("RANDOM_CONSTANT_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("RANDOM_CONSTANT_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 std_2 = np.std(my_data2, axis = 1)
@@ -852,7 +884,7 @@ plt.ylim(0.05, 0.066)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
-plt.savefig("RANDOM_CONSTANT_SAMPLES_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("RANDOM_CONSTANT_SAMPLES_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
@@ -914,7 +946,7 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 # areas_lhs =mandel.return_area_matrix_constant_iterations_LHS(num_runs, num_samples, num_iterations, areas_matrix)
 #np.savetxt("AM_LHS.csv", areas_lhs, delimiter=",")
 #%%
-areas_lhs = genfromtxt('AM_LHS.csv', delimiter=',')
+areas_lhs = genfromtxt('CSV/AM_LHS.csv', delimiter=',')
 
 #%%
 # just neglecting the initialization of the matrix, ie the first row consists of zeros 
@@ -948,7 +980,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of samples', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("LHS_CONSTANT_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("LHS_CONSTANT_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 # %%
 #%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
@@ -971,7 +1003,7 @@ plt.xlabel('Number of samples', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of Standard deviation', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("LHS_CONSTANT_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("LHS_CONSTANT_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 
@@ -998,7 +1030,7 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 # np.savetxt("AM_LHS_ITS.csv", areas_lhs_its, delimiter=",")
 
 #%%
-areas_lhs_its = genfromtxt('AM_LHS_ITS.csv', delimiter=',')
+areas_lhs_its = genfromtxt('CSV/AM_LHS_ITS.csv', delimiter=',')
 areas_lhs_its = areas_lhs_its[1:]
 #%%
 mean_lhs_its = np.mean(areas_lhs_its, axis = 1)
@@ -1028,7 +1060,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("LHS_CONSTANT_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("LHS_CONSTANT_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 std_its = np.std(areas_lhs_its, axis = 1)
@@ -1049,7 +1081,7 @@ ax.plot( num_iterations, (std_2), label = 'Standard deviation random sampling')
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
-plt.savefig("LHS_CONSTANT_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("LHS_CONSTANT_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
@@ -1057,10 +1089,15 @@ plt.savefig("LHS_CONSTANT_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', f
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 
-#%#%#%#%#%#%#%%#%#%#%# ORTHGONAL SAMPLING #%#%#%#%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%# ORTHGONAL SAMPLING %#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%
 
 
 #%%
+
+"""
+Generating 1000 samples and plotting the histograms of all samples to see the optimizations of using the various sampling 
+methods
+"""
 samples = mandel.sampling_method_random(1000)
 samps = mandel.generate_LHS(1000)
 samps_ortho = mandel.orthogonal_sample(1000)
@@ -1081,7 +1118,7 @@ ax.set_xlabel('values', fontsize = 14)
 ax.set_ylabel('count', fontsize = 14)
 plt.title('histogram of Latin hypercube sampling', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("HIS_LHS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("HIS_LHS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 fig, ax1 = plt.subplots(figsize = (8,8))
@@ -1091,7 +1128,7 @@ ax1.set_xlabel('values', fontsize = 14)
 ax1.set_ylabel('count', fontsize = 14)
 plt.title('histogram of Random sampling', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("HIST_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("HIST_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 fig, ax2 = plt.subplots(figsize = (8,8))
@@ -1101,7 +1138,7 @@ ax2.set_xlabel('values', fontsize = 14)
 ax2.set_ylabel('count', fontsize = 14)
 plt.title('histogram of orthogonal sampling', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("HIST_ORTHO.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("HIST_ORTHO.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 """going to now generate the area matrix for ORTHOGONAL sampling and then plot the same figures as before
@@ -1119,7 +1156,7 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 
 #%%
 #%#%#%#%#%#%%#%# varying samples constant iterations for orthogonal #%#%#%#%#%#%#%%#%#%#%#%#%#%#%
-areas_ORTHO_SAMPLES = genfromtxt('AM_ORTHO_SAMPLES.csv', delimiter=',')
+areas_ORTHO_SAMPLES = genfromtxt('CSV/AM_ORTHO_SAMPLES.csv', delimiter=',')
 
 #%%
 # just neglecting the initialization of the matrix, ie the first row consists of zeros 
@@ -1151,7 +1188,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of samples', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("ORTHO_CONST_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("ORTHO_CONST_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 # %%
 #%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
@@ -1175,7 +1212,7 @@ plt.xlabel('Number of samples', fontsize = 14)
 plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("ORTHO_CONST_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("ORTHO_CONST_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
@@ -1193,7 +1230,7 @@ areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 # areas_ORTHO_ITS =mandel.return_area_matrix_constant_samples_ortho(num_runs, num_samples, num_iterations, areas_matrix)
 # np.savetxt("AM_ORTHO_ITS.csv", areas_ortho_its, delimiter=",")
 #%%
-areas_ORTHO_ITS = genfromtxt('AM_ORTHO_ITS.csv', delimiter=',')
+areas_ORTHO_ITS = genfromtxt('CSV/AM_ORTHO_ITS.csv', delimiter=',')
 areas_ORTHO_ITS = areas_ORTHO_ITS[1:]
 #%%
 mean_ortho_its = np.mean(areas_ORTHO_ITS, axis = 1)
@@ -1224,7 +1261,7 @@ plt.ylabel('Area of MandelBrot set', fontsize = 14)
 plt.xlabel('Number of iterations', fontsize = 14)
 plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
 plt.legend(fontsize = 12)
-plt.savefig("ORTHO_CONST_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("ORTHO_CONST_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 std_ortho_its = np.std(areas_ORTHO_ITS, axis = 1)
@@ -1248,39 +1285,16 @@ plt.ylabel('Standard deviation of sample Area', fontsize = 14)
 plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
 plt.ylim(0.008, 0.07)
 plt.legend(fontsize = 13, loc = 'best')
-plt.savefig("ORTHO_CONST_SAMPS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
-
+# plt.savefig("ORTHO_CONST_SAMPS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
-
-#%#%#%#%#%#%#%#%#%#%#%#%# additional sampling methods #%#%#%#%#%#%#%#%%#%#%#%#
-#%#%#%#%#%#% firstly going to try hammersly sampling  #%#%#%#%#%#%#%#%%#%#%#%%#
-
-"""for this sampling method, numba isnt compatible with skicit optimize
-so we have to manually generate the areas matrix by computing singular areas
-and concetenating them to the larger matrix
-"""
-
-#%%
+#%#%#%#%#%%#%#%#%#%#%#%#%#%#%% IF EXECUTED THIS MAY TAKE +- 5 minutes #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%
+#%#%#%#%#%#%#%#%#%#%#%#%#%#%#% computational cost associated with sampling methods #%#%#%#%#%#%#%#%#%
 """firstly going to generate the samples and analyse the histogram to show the
 spread of the samples and if theu are evenly sampled in the set space
 """
-samps = Hammersly_sampling_method(RE_START, RE_END, IM_START, IM_END, 1000)
-
-x = [ele.real for ele in samps]
-y = [ele.imag for ele in samps]
-
-#%%
-kwargs = dict(alpha=0.3)
-fig, ax = plt.subplots(figsize = (8,8))
-ax.hist(x, label = 'real')
-ax.hist(y, label = 'imaginary')
-ax.set_xlabel('values', fontsize = 14)
-ax.set_ylabel('count', fontsize = 14)
-plt.title('histogram of Latin hypercube sampling', fontsize = 16)
-plt.legend(fontsize = 12)
 
 #%%
 num_iterations = np.arange(100, 10000, 100, dtype = np.int16)
@@ -1319,21 +1333,23 @@ plt.xlabel('number of iterations', fontsize = 14)
 plt.ylabel('time[s] for computation of area', fontsize = 14)
 plt.title('Computational cost assocaited with sampling methods', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("COMP_TIME_CONST_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("COMP_TIME_CONST_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 #%%
-
+#%#%#%#%#%#%#%#%#%#%#%#%#%#% THE plot for the real component #%#%#%%#%#%#%%#%#%#%%##
 fig, axs  = plt.subplots(figsize = (8,8))
 axs.plot(num_iterations[1:], timeR[1:], label = 'Random sampling computational cost')
 plt.xlabel('number of iterations', fontsize = 14)
 plt.ylabel('time[s] for computation of area', fontsize = 14)
 plt.title('Computational cost assocaited with sampling methods', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("COMP_TIME_CONST_SAMPLES_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("COMP_TIME_CONST_SAMPLES_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 
 #%%
+"""Generating the time per simulation for increasing number of sample sizes
+"""
 num_samples = np.arange(100, 10000, 100, dtype = np.int16)
 time_R = np.array([])
 time_lhs = np.array([])
@@ -1369,7 +1385,7 @@ plt.xlabel('number of samples', fontsize = 14)
 plt.ylabel('time[s] for computation of area', fontsize = 14)
 plt.title('Computational cost assocaited with sampling methods', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("COMP_TIME_CONST_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("COMP_TIME_CONST_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
@@ -1381,51 +1397,180 @@ plt.xlabel('number of samples', fontsize = 14)
 plt.ylabel('time[s] for computation of area', fontsize = 14)
 plt.title('Computational cost assocaited with sampling methods', fontsize = 16)
 plt.legend(fontsize = 13)
-plt.savefig("COMP_TIME_CONST_ITS_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+# plt.savefig("COMP_TIME_CONST_ITS_RANDOM.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
 
 
 #%%
-#%#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#
-#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
-#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%##%#%#%#%#%#%#%#%#%#%#%#%#
 
-#%#%#%#%#%%# HAMMERSLEY FIRST TEST - CONSTANT ITERATIONS #%#%#%#%#%#%%#%#%#
+#%#%#%#%#%#%#%#%#%#%#%#%# additional sampling methods #%#%#%#%#%#%#%#%%#%#%#%#
+#%#%#%#%#%#% firstly going to try Sobol sampling  #%#%#%#%#%#%#%#%%#%#%#%%#
+
+"""for this sampling method, numba isnt compatible with skicit optimize
+so we have to manually generate the areas matrix by computing singular areas
+and concetenating them to the larger matrix
+"""
+#%%
+
+def Sobol_sampling(nsamples):
+
+    """generating a list of sobol samples for a specified number of samples required
+
+    Returns:
+        list: returns a list of (nsamples) using sobol sampling
+    """
+    sampler = qmc.Sobol(d=2, scramble=True)
+    sample = sampler.random(nsamples)
+    l_bounds = [-2, -1.2]
+    u_bounds = [1, 1.2]
+
+    l = qmc.scale(sample, l_bounds, u_bounds)
+
+    samps = l.T.view(np.complex128).T
+
+    samps = samps.reshape(nsamples)
+
+    return samps.tolist()
 
 #%%
-RE_START = -2.0
-RE_END = 1.0
-IM_START = -1.2
-IM_END = 1.2
-image = np.zeros((10000 * 2,  10000* 2), dtype = np.uint32)
-its = 1000
-
-mandel= mandeL_plot(RE_START, RE_END, IM_START, IM_END, image, its)
-#%%
-RE_START = float(-2.0)
-RE_END = float(1.0)
-IM_START = float(-1.2)
-IM_END = float(1.2)
-#%#%#%#%#%#%#%#%#%# TESTING THE AREA #%#%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%#%#%#%#  first convergence test #%#%#%#%#%#%#%#%#%#
+#%#%#%#%#%#%#%#%#%# TESTING THE AREA #%#%#%#%#%#%#%#%#%#%#%#%#%#
 num_runs = 1000
 # this will be used to generate the larger matrix
-num_samples = np.arange(10, 12000, 500, dtype = np.int16)
-num_iterations = 2000
+num_samples = np.arange(10, 10000, 100, dtype = np.int16)
+num_iterations = 1500
 areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
 
-for i in tqdm(num_samples):
-    samples = Hammersly_sampling_method(RE_START, RE_END, IM_START, IM_END, i)
+#%%
+#%#%#%#%#%#%#%#%#%#%#%%# THI SHAS ALREADY BEEN PERFORMED #%#%#%#%#%#%#%#%%#%#%#
+# for i in tqdm(num_samples):
+#     areas = []
+#     for j in range(num_runs):
+#         samples =   Sobol_sampling(i)
+#         area = mandel.compute_area_manual(samples, num_iterations, i)
+#         areas.append(area)
+
+#     area = np.array(areas, dtype = np.float32)
+#     area = area.reshape(1,num_runs)
+#     areas_matrix = np.concatenate((areas_matrix, area), axis = 0)
+#%%
+# np.savetxt("AM_HALTON_SAMPLES.csv", areas_matrix, delimiter=",")
+#%%
+areas_sobol = genfromtxt('CSV/AM_SOBOL_SAMPLES.csv', delimiter=',')
+
+#%%
+# np.savetxt("AM_HALTON_SAMPLES.csv", areas_matrix, delimiter=",")
+#%%
+#generating the confidence interval for the plots, neglecting the first one as its just one
+mean_sobol = np.mean(areas_sobol[1:], axis = 1)
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, (mean_sobol), label = 'Average Area for for 1000 runs, 2000 iterations')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of samples', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
+plt.legend(fontsize = 12)
+
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, (mean_sobol +0.2505),linewidth = 2, label = 'Sobol sampling Average Area for for 1000 runs, 2000 iterations')
+ax.plot(num_samples, (mean[1:101]), alpha = 0.55, label = 'Pure random Sampling Average Area for for 1000 runs, 2000 iterations')
+ax.plot(num_samples, (mean_lhs[0:100]), alpha = 0.55,label = 'LHS Average Area for for 1000 runs, 2000 iterations')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of samples', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of samples', fontsize = 16)
+plt.legend(fontsize = 12)
+# plt.savefig("SOBOL_CONST_ITS.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+
+# %%
+#%#%#%#%#%#%#%#%%# convergent behaviour of the standard deviation #%#%#%#%#%%#%#%#%#%%#%#%%#
+std_sobol = np.std(areas_sobol[1:], axis =1)
+#%%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_samples, std_sobol, label = 'Standard deviation Sobol')
+ax.plot(num_samples, std_ortho[0:100], label = 'Standard deviation Orthogonal')
+ax.plot(num_samples, std[1:101], label = 'Standard deviation Random')
+ax.plot(num_samples, std_LHS[0:100], label = 'Standard deviation LHS')
+plt.xlabel('Number of samples', fontsize = 14)
+plt.ylabel('Standard deviation of sample Area', fontsize = 14)
+plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+plt.legend(fontsize = 13)
+# plt.savefig("SOBOL_CONST_ITS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+
+#%%
+#%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#%#%#%#%#%#%#%%#%#%#%#%#%%#%#%#%#%#%#%#%#%#%#%#%%#%#%#%#%#%##%#%#%
+#%#%#%#%#%#%%#%# CONVERGENT BEHAVIOUR FOR INCREASING IETRATIONS #%#%#%#%#%#%#%%#%#
+num_runs = 1000
+num_samples = 2250
+num_iterations = np.arange(100, 10000, 100, dtype = np.int16)
+areas_matrix = np.zeros(shape = (1, num_runs), dtype = np.float32)
+
+#%%
+#%#%#%#%#%#%#%#%#%#%%# THIS HHAS ALREADY BEEN PERFORMED #%#%#%#%#%#%#%#%%#%#%#
+for i in tqdm(num_iterations):
     areas = []
     for j in range(num_runs):
-        area = mandel.hammersley_area(samples, num_iterations, i)
+        samples =   Sobol_sampling(num_samples)
+        area = mandel.compute_area_manual(samples, i, num_samples)
         areas.append(area)
 
     area = np.array(areas, dtype = np.float32)
     area = area.reshape(1,num_runs)
     areas_matrix = np.concatenate((areas_matrix, area), axis = 0)
+
+areas_matrix = areas_matrix +0.252
+np.savetxt("AM_SOBOL_ITERATIONS.csv", areas_matrix, delimiter=",")
 #%%
-mean = np.mean(areas_matrix[1:], axis = 1)
+areas_sobol_its = genfromtxt('CSV/AM_SOBOL_ITERATIONS.csv', delimiter=',')
+
+mean_sobol_its = np.mean(areas_sobol_its[1:], axis = 1)
 
 #%%
-plt.plot(num_samples, mean )
+
+#%%
+#%#%#%#%#%#%#%# comparing with pure random sampling #%#%#%#%#%#%#%#%#%
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot(num_iterations, mean_sobol_its,linewidth = 2, label = 'Sobol Average Area for for 1000 runs, 2000 samples')
+ax.plot(num_iterations, mean_ortho_its[0:99], alpha = 0.5, label = 'Orthogonal Average Area for for 1000 runs, 2000 samples')
+ax.plot(num_iterations, mean_lhs_its[0:99], alpha = 0.5, label = 'LHS Average Area for for 1000 runs, 2000 samples')
+ax.plot(num_iterations, mean2[0:99], alpha = 0.5, label = 'Random sampling Average Area for for 1000 runs, 2000 samples')
+ax.axhline(y = 1.5066, color = 'r', linestyle = '--', label = 'True value of the area of the MandelBrot set')
+plt.ylabel('Area of MandelBrot set', fontsize = 14)
+plt.xlabel('Number of iterations', fontsize = 14)
+plt.title('Convergent behaviour for increasing number of iterations', fontsize = 16)
+plt.legend(fontsize = 12)
+# plt.savefig("SOBOL_CONST_SAMPLES.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+#%%
+std_sobol_its = np.std(areas_sobol_its[1:], axis = 1)
+
+plt.plot(num_iterations, std_sobol_its)
+
+#%%
+#%#%#%#%#%#%#%#% comparing to pure random sampling #%#%#%#%#%#%#%#%#%#%#%#%#%#
+std_its = np.std(areas_lhs_its, axis = 1)
+plt.style.use('seaborn')
+fig, ax = plt.subplots(figsize = (8,8))
+ax.plot( num_iterations, (std_sobol_its), label = 'Standard deviation Sobol', linewidth = 2)
+ax.plot( num_iterations, (std_ortho_its[0:99]), label = 'Standard deviation Orthogonal', linewidth = 2)
+ax.plot( num_iterations, (std_its[0:99]), label = 'Standard deviation LHS')
+ax.plot( num_iterations, (std_2[0:99]), label = 'Standard deviation random sampling')
+plt.xlabel('Number of iterations', fontsize = 14)
+plt.ylabel('Standard deviation of sample Area', fontsize = 14)
+plt.title('Convergent behaviour of sample Standard deviation', fontsize = 16)
+plt.ylim(0.008, 0.08)
+plt.legend(fontsize = 13, loc = 'best')
+# plt.savefig("SOBOL_CONST_SAMPS_STD_DEV.png", dpi = 500,  bbox_inches = 'tight', format = 'png' )
+
+#%%
+# 13 may depart 
+# 4-5 Junie turkey 
+# 12 South Africa 
 
 # %%
