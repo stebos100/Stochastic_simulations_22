@@ -71,9 +71,9 @@ class DES_MD_LT(object):
 
     def longtail(self, x):
         '''Returns a long tail distribution with mean 1/x 
-        where 25% has an exponential distribution with mean processing capacity = 3
+        where 25% has an exponential distribution with mean processing capacity = 5
         and 75% an exponential with a mean so that the mean of the distribution is 1/x '''
-        mu_big = 3
+        mu_big = 5
         mu_small = 0.75*x*mu_big/(mu_big-0.25*x)
         a = random.random()
         if a < 0.25:
@@ -107,12 +107,12 @@ class DES_MD_LT(object):
 """
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%%#%#%# going to investigate shortest task first #%#%#%#%#%#%#%#%#%%#%#%##%#%#%
-n_samples = 500000
+n_samples = 50000
 n_servers = np.array([1])
 steps = 20
 arrival_rate = n_servers
 p_min = 0.5
-p_max = 0.95
+p_max = 0.995
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
 waiting_times_mm1_shortest = np.zeros((1, steps, n_samples))
@@ -174,7 +174,7 @@ plt.legend()
 #%% 
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%#% going to investigate long tailed distribution #%#%#%#%#%#%#%#%#%%#%%#
-n_samples = 500000
+n_samples = 10
 n_servers = np.array([1,2,4])
 steps = 10
 arrival_rate = n_servers
@@ -183,6 +183,9 @@ p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
 waiting_times_MDN = np.zeros((3, steps, n_samples))
+waiting_times_MDN_stacked = np.zeros((1, 10))
+waiting_times_MDN_stacked.shape
+#%%
 
 for i in range(len(n_servers)):
     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
@@ -191,7 +194,63 @@ for i in range(len(n_servers)):
         waiting_times = []
         setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
         env.run(until=setup2.num_samples_count)
+        print(setup2.waiting_times[:n_samples])
         waiting_times_MDN[i, j, :] = setup2.waiting_times[:n_samples]
+
+
+waiting_times_MDN.shape
+
+#%%
+n_samples = 20000
+n_servers = np.array([1])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+waiting_times_MDN_stacked = np.zeros((1, 100))
+runs = 100
+
+#%%
+for i in range(len(n_servers)):
+    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+        waiting_times_MDN_stacked_temp = np.zeros((1, n_samples))
+        for k in range(runs):
+            env = simpy.Environment()
+            servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
+            waiting_times = []
+            setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
+            env.run(until=setup2.num_samples_count)
+            waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup2.waiting_times[:n_samples]))   
+        appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
+        apend = appending.reshape(1, appending.shape[0])
+        waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
+
+waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
+#%%
+relavant_std = np.std(waiting_times_MDN_stacked, axis = 1)
+relavant_means = np.mean(waiting_times_MDN_stacked, axis = 1)
+
+#%%
+rho_range = np.linspace(p_min, p_max, 1000)
+mu_range = 1 / rho_range
+theoretical_longtail = np.zeros((1,len(rho_range)))
+for i in n_servers:
+    values = []
+    for rho, mu in zip(rho_range, mu_range):
+        values.append(Functions.longtail_pred(rho, mu, i))
+
+    theoretical_longtail = np.vstack((theoretical_longtail, values))
+    
+theoretical_longtail = theoretical_longtail[1:]
+theoretical_longtail.shape
+#%%
+
+fig, ax = plt.subplots(figsize = (8,8))
+ax.scatter(p_range, relavant_means, marker = "^")
+ax.fill_between(p_range, relavant_means - relavant_std, relavant_means + relavant_std, alpha = 0.3)
+ax.plot(rho_range, theoretical_longtail[0,:,])
 
 #%%
 mean_waiting_times_LT = np.zeros((len(n_servers), steps))
@@ -201,7 +260,7 @@ for i in range(len(n_servers)):
         mean_waiting_times_LT[i, j] = np.mean(waiting_times_MDN[i, j, :])
 
 
-np.savetxt("mean_waiting_time_0.5-0.95_LT.csv", mean_waiting_times_LT, delimiter=",")
+# np.savetxt("mean_waiting_time_0.5-0.95_LT.csv", mean_waiting_times_LT, delimiter=",")
 mean_waiting_times_LT.shape
 # %%
 rho_range = np.linspace(p_min, p_max, 1000)
@@ -216,7 +275,7 @@ for i in n_servers:
     
 theoretical_longtail = theoretical_longtail[1:]
 #%%
-mean_waiting_times_LT = genfromtxt('mean_waiting_time_0.5-0.95_LT.csv', delimiter=',')
+# mean_waiting_times_LT = genfromtxt('mean_waiting_time_0.5-0.95_LT.csv', delimiter=',')
 
 for i in range(len(n_servers)):
     plt.scatter(p_range, mean_waiting_times_LT[i], marker='^',label = '%s servers' % n_servers[i], linewidth = 2)
@@ -359,7 +418,7 @@ service_rate = (1 / p_range)
 
 waiting_times_rho_D = np.zeros((3, steps,n_samples))
 
-
+#%%
 for i in range(len(n_servers)):
     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
         env = simpy.Environment()
