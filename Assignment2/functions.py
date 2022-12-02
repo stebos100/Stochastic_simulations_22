@@ -7,9 +7,31 @@ import matplotlib.pyplot as plt
 import random
 from tqdm import tqdm
 from scipy import integrate
+import scipy.stats as st
 
 #%%
 # functions outside of the class under analysis 
+
+def calculate_confidence_interval(matrix):
+    """This function generates a 95% confidence interval for a matrix of areas calculated using MC simulations
+
+    Args:
+        matrix (numpy array 2D): matrix containing all area computations
+
+    Returns:
+        numpy array: array of confidence intervals for the average of each simulation
+    """
+
+    cis = np.ones(shape = (1,2))
+
+    for i in matrix:
+        data = i 
+        interval = np.array(st.t.interval(alpha=0.95, df=(matrix.shape[1])-1, loc=np.mean(data), scale=st.sem(data)))
+        interval = interval.reshape(1,2)
+        cis = np.vstack((cis, interval))
+
+    return cis
+
 
 def theoretical_mmn(rho, mu, n):
     def W(n, rho):

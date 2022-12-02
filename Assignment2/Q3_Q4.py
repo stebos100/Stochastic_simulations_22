@@ -109,7 +109,7 @@ class DES_MD_LT(object):
 #%#%#%#%#%#%#%#%#%%#%#%# going to investigate shortest task first #%#%#%#%#%#%#%#%#%%#%#%##%#%#%
 n_samples = 50000
 n_servers = np.array([1])
-steps = 20
+steps = 10
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.995
@@ -129,108 +129,121 @@ for i in range(len(n_servers)):
         waiting_times_rho_s[i, j, :] = setup1.waiting_times[:n_samples]
 # np.save(f'results/waiting_times_rho_s', waiting_times_rho_s)
 #%%
-mean_waiting_times = np.zeros((len(n_servers), steps))
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 20
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 25
 
-for i in range(len(n_servers)):
-    for j in range(steps):
-        mean_waiting_times[i, j] = np.mean(waiting_times_rho_s[i, j, :])
+waiting_times_SJF = np.zeros((3, steps, n_samples))
+waiting_times_SJF_stacked = np.zeros((1, runs))
+waiting_times_SJF_stacked.shape
 
 
-mean_waiting_times.shape
-# %%
-rho_range = np.linspace(p_min, p_max, 1000)
+#%%
+# for i in range(len(n_servers)):
+#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
+#         waiting_times_SJF_stacked_temp = np.zeros((1, n_samples))
+#         for k in range(runs):
+#             env = simpy.Environment()
+#             servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
+#             waiting_times = []
+#             setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
+#             env.run(until=setup1.n_samples_reached)            
+#             waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:n_samples]))   
+#         appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
+#         apend = appending.reshape(1, appending.shape[0])
+#         waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
+
+# waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
+# np.savetxt("SJF_0.5_0.95.csv", waiting_times_SJF_stacked, delimiter=",")
+#%%
+waiting_times_SJF_stacked = genfromtxt('SJF_0.5_0.95.csv', delimiter=',')
+relavant_std_MM = np.std(waiting_times_SJF_stacked, axis = 1)
+relavant_means_MM = np.mean(waiting_times_SJF_stacked, axis = 1)
+
+cis  = Functions.calculate_confidence_interval(waiting_times_SJF_stacked)
+cis = cis[1:]
+#%%
+rho_range = np.linspace(p_min, p_max, 100)
 mu_range = 1 / rho_range
 theory = []
 
 for rho, mu in zip(rho_range, mu_range):
     theory.append(Functions.SPTF(rho, mu, 1))
-
 #%%
-for i in range(len(n_servers)):
-    plt.scatter(p_range, mean_waiting_times[i], marker = 'X', s=100, label = '%s servers' % n_servers[i])
-plt.plot(rho_range , theory, linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
+fig, ax1 = plt.subplots(figsize = (8,8))
+fig2, ax2 = plt.subplots(figsize = (8,8))
+for i in n_servers:
+    if i == 1:
+        ax1.scatter(p_range, relavant_means_MM[0:i*20], marker = "^", label = 'simulation values for {} server(s)'.format(i))
+        ax1.fill_between(p_range, relavant_means_MM[0:i*20] + 0.1, relavant_means_MM[0:i*20] - 0.1, alpha = 0.3, label = "0.05 width tolerance")
+        ax2.plot(p_range, relavant_std_MM[0:i*20], marker = "^", label = 'standard deviation for {} server(s)'.format(i))
+    elif i == 2:
+        ax1.plot(p_range, relavant_means_MM[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax2.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "o", linestyle = "--", label = 'standard deviation for {} server(s)'.format(i))
+
+    elif i == 4:
+        ax1.plot(p_range, relavant_means_MM[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax2.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "8", label = 'standard deviation for {} server(s)'.format(i))
 
 
+ax1.plot(rho_range , theory, linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+ax1.legend(fontsize = 13)
+ax1.set_xlabel(r'$\rho$', fontsize = 17)
+ax1.set_ylabel("Waiting time", fontsize = 14)
+ax1.set_title("Waiting times for M/M/1 - M/M/n vs amount of servers available", fontsize  = 15)
+
+ax2.legend(fontsize = 13)
+ax2.set_xlabel(r'$\rho$', fontsize = 17)
+ax2.set_ylabel("Standard deviation", fontsize = 14)
+ax2.set_title("Standard deviation for M/M/1 - M/M/n Queue simulation", fontsize  = 15)
 #%%
-for i in range(len(n_servers)):
-    plt.plot(p_range, mean_waiting_times[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-    
-# %%
-for i in range(len(n_servers)):
-    plt.plot(service_rate, mean_waiting_times[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-
 #%% 
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%#% going to investigate long tailed distribution #%#%#%#%#%#%#%#%#%%#%%#
-n_samples = 10
+
+#%%
+n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 10
+steps = 20
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-waiting_times_MDN = np.zeros((3, steps, n_samples))
-waiting_times_MDN_stacked = np.zeros((1, 10))
-waiting_times_MDN_stacked.shape
-#%%
+runs = 25
 
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-        env = simpy.Environment()
-        servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
-        waiting_times = []
-        setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
-        env.run(until=setup2.num_samples_count)
-        print(setup2.waiting_times[:n_samples])
-        waiting_times_MDN[i, j, :] = setup2.waiting_times[:n_samples]
-
-
-waiting_times_MDN.shape
+waiting_times_MLN_stacked = np.zeros((1, runs))
 
 #%%
-n_samples = 20000
-n_servers = np.array([1])
-steps = 10
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-waiting_times_MDN_stacked = np.zeros((1, 100))
-runs = 100
+# for i in range(len(n_servers)):
+#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+#         waiting_times_MLN_stacked_temp = np.zeros((1, n_samples))
+#         for k in range(runs):
+#             env = simpy.Environment()
+#             servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
+#             waiting_times = []
+#             setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
+#             env.run(until=setup2.num_samples_count)
+#             waiting_times_MLN_stacked_temp = np.vstack((waiting_times_MLN_stacked_temp, setup2.waiting_times[:n_samples]))   
+#         appending = np.mean(waiting_times_MLN_stacked_temp[1:], axis = 1)
+#         apend = appending.reshape(1, appending.shape[0])
+#         waiting_times_MLN_stacked = np.vstack((waiting_times_MLN_stacked,apend))
 
+# waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
+# np.savetxt("MLN_0.5_0.95.csv", waiting_times_MLN_stacked, delimiter=",")
 #%%
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
-        waiting_times_MDN_stacked_temp = np.zeros((1, n_samples))
-        for k in range(runs):
-            env = simpy.Environment()
-            servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
-            waiting_times = []
-            setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
-            env.run(until=setup2.num_samples_count)
-            waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup2.waiting_times[:n_samples]))   
-        appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
-        apend = appending.reshape(1, appending.shape[0])
-        waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
 
-waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
+waiting_times_MLN_stacked = genfromtxt('MLN_0.5_0.95.csv', delimiter=',')
+waiting_times_MLN_stacked.shape
 #%%
-relavant_std = np.std(waiting_times_MDN_stacked, axis = 1)
-relavant_means = np.mean(waiting_times_MDN_stacked, axis = 1)
+relavant_std_ML = np.std(waiting_times_MLN_stacked, axis = 1)
+relavant_means_ML = np.mean(waiting_times_MLN_stacked, axis = 1)
 
 #%%
 rho_range = np.linspace(p_min, p_max, 1000)
@@ -244,90 +257,81 @@ for i in n_servers:
     theoretical_longtail = np.vstack((theoretical_longtail, values))
     
 theoretical_longtail = theoretical_longtail[1:]
-theoretical_longtail.shape
-#%%
-
-fig, ax = plt.subplots(figsize = (8,8))
-ax.scatter(p_range, relavant_means, marker = "^")
-ax.fill_between(p_range, relavant_means - relavant_std, relavant_means + relavant_std, alpha = 0.3)
-ax.plot(rho_range, theoretical_longtail[0,:,])
 
 #%%
-mean_waiting_times_LT = np.zeros((len(n_servers), steps))
-
-for i in range(len(n_servers)):
-    for j in range(steps):
-        mean_waiting_times_LT[i, j] = np.mean(waiting_times_MDN[i, j, :])
-
-
-# np.savetxt("mean_waiting_time_0.5-0.95_LT.csv", mean_waiting_times_LT, delimiter=",")
-mean_waiting_times_LT.shape
-# %%
-rho_range = np.linspace(p_min, p_max, 1000)
-mu_range = 1 / rho_range
-theoretical_longtail = np.zeros((1,len(rho_range)))
+fig, ax3 = plt.subplots(figsize = (8,8))
+fig2, ax4 = plt.subplots(figsize = (8,8))
 for i in n_servers:
-    values = []
-    for rho, mu in zip(rho_range, mu_range):
-        values.append(Functions.longtail_pred(rho, mu, i))
+    if i == 1:
+        ax3.scatter(p_range, relavant_means_ML[0:i*20], marker = "^", label = 'simulation values for {} server(s)'.format(i))
+        ax3.fill_between(p_range, relavant_means_ML[0:i*20] + 0.2, relavant_means_ML[0:i*20] - 0.2, alpha = 0.3, label = "0.05 width tolerance")
+        ax3.plot(rho_range , theoretical_longtail[0, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax4.plot(p_range, relavant_std_MM[0:i*20], marker = "^", label = 'standard deviation for {} server(s)'.format(i))
+    elif i == 2:
+        ax3.scatter(p_range, relavant_means_ML[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax3.fill_between(p_range, relavant_means_ML[((i)*10):((i+2)*10)] + 0.2, relavant_means_ML[((i)*10):((i+2)*10)] - 0.2, alpha = 0.3, label = "0.05 width tolerance")
+        ax3.plot(rho_range , theoretical_longtail[1, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax4.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "o", linestyle = "--", label = 'standard deviation for {} server(s)'.format(i))
 
-    theoretical_longtail = np.vstack((theoretical_longtail, values))
-    
-theoretical_longtail = theoretical_longtail[1:]
-#%%
-# mean_waiting_times_LT = genfromtxt('mean_waiting_time_0.5-0.95_LT.csv', delimiter=',')
+    elif i == 4:
+        ax3.scatter(p_range, relavant_means_ML[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax3.fill_between(p_range, relavant_means_ML[((i)*10):((i+2)*10)] + 0.2, relavant_means_ML[((i)*10):((i+2)*10)]- 0.2, alpha = 0.3, label = "0.05 width tolerance")
+        ax3.plot(rho_range , theoretical_longtail[0, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax4.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "8", label = 'standard deviation for {} server(s)'.format(i))
 
-for i in range(len(n_servers)):
-    plt.scatter(p_range, mean_waiting_times_LT[i], marker='^',label = '%s servers' % n_servers[i], linewidth = 2)
-colors = ['cornflowerblue', 'forestgreen', 'lightcoral']
-for i in range(3):
-    plt.plot(rho_range, theoretical_longtail[i, :], linestyle = '--', color = colors[i] ,alpha = 0.9, label = 'theoretical value for {} servers'.format(i + 1))
-plt.xlabel(r'$\rho$', fontsize = 17)
-plt.ylabel("Waiting time", fontsize = 14)
-plt.title("Waiting times for M/L/n vs amount of servers available", fontsize  = 15)
-plt.legend(fontsize = 13)
-    
-# %%
-for i in range(len(n_servers)):
-    plt.plot(service_rate, mean_waiting_times_LT[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-    
+
+ax3.legend(fontsize = 13)
+ax3.set_xlabel(r'$\rho$', fontsize = 17)
+ax3.set_ylabel("Waiting time", fontsize = 14)
+ax3.set_title("Waiting times for M/L/1 - M/L/n Queueing simulation", fontsize  = 15)
+
+ax4.legend(fontsize = 13)
+ax4.set_xlabel(r'$\rho$', fontsize = 17)
+ax4.set_ylabel("Standard deviation", fontsize = 14)
+ax4.set_title("Standard deviation for M/L/1 - M/L/n Queue simulation", fontsize  = 15)
+
 # %%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%
 #%#%#%#%#%#%#%#%#%%#%#%# investigating deterministic distributions #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #global variables
-n_samples = 500000
+# %%
+n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 10
+steps = 20
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-waiting_times_rho_D = np.zeros((3, steps,n_samples))
+runs = 25
+
+waiting_times_MDN_stacked = np.zeros((1, runs))
+
 #%%
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-        env = simpy.Environment()
-        servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
-        waiting_times = []
-        setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, n_samples,'deterministic')
-        env.run(until=setup3.num_samples_count)
-        waiting_times_rho_D[i, j, :] = setup3.waiting_times[:n_samples]
+# for i in range(len(n_servers)):
+#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+#         waiting_times_MDN_stacked_temp = np.zeros((1, n_samples))
+#         for k in range(runs):
+#             env = simpy.Environment()
+#             servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
+#             waiting_times = []
+#             setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, n_samples,'deterministic')
+#             env.run(until=setup3.num_samples_count)
+#             waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup3.waiting_times[:n_samples]))   
+#         appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
+#         apend = appending.reshape(1, appending.shape[0])
+#         waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
 
-mean_waiting_times_D = np.zeros((len(n_servers), steps))
+# waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
+# np.savetxt("MDN_0.5_0.95.csv", waiting_times_MDN_stacked, delimiter=",")
 
-for i in range(len(n_servers)):
-    for j in range(steps):
-        mean_waiting_times_D[i, j] = np.mean(waiting_times_rho_D[i, j, :])
+#%%
+waiting_times_MDN_stacked = genfromtxt("MDN_0.5_0.95.csv", delimiter=',')
 
-np.savetxt("mean_waiting_time_0.5-0.95_MDN.csv", mean_waiting_times_D, delimiter=",")
+relavant_std_MD = np.std(waiting_times_MDN_stacked, axis = 1)
+relavant_means_MD = np.mean(waiting_times_MDN_stacked, axis = 1)
 
-# %%
-
+#%%
 rho_range = np.linspace(p_min, p_max, 1000)
 mu_range = 1 / rho_range
 theoretical_det = np.zeros((1,len(rho_range)))
@@ -340,108 +344,35 @@ for i in n_servers:
     
 theoretical_det = theoretical_det[1:]
 #%%
+fig, ax5 = plt.subplots(figsize = (8,8))
+fig2, ax6 = plt.subplots(figsize = (8,8))
+for i in n_servers:
+    if i == 1:
+        ax5.scatter(p_range, relavant_means_MD[0:i*20], marker = "^", label = 'simulation values for {} server(s)'.format(i))
+        ax5.fill_between(p_range, relavant_means_MD[0:i*20] + 0.1, relavant_means_MD[0:i*20] - 0.1, alpha = 0.3, label = "0.05 width tolerance")
+        ax5.plot(rho_range , theoretical_det[0, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax6.plot(p_range, relavant_std_MM[0:i*20], marker = "^", label = 'standard deviation for {} server(s)'.format(i))
+    elif i == 2:
+        ax5.scatter(p_range, relavant_means_MD[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax5.fill_between(p_range, relavant_means_MD[((i)*10):((i+2)*10)] + 0.1, relavant_means_MD[((i)*10):((i+2)*10)] - 0.1, alpha = 0.3, label = "0.05 width tolerance")
+        ax5.plot(rho_range , theoretical_det[1, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax6.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "o", linestyle = "--", label = 'standard deviation for {} server(s)'.format(i))
 
-mean_waiting_times_D = genfromtxt("mean_waiting_time_0.5-0.95_MDN.csv", delimiter=',')
+    elif i == 4:
+        ax5.scatter(p_range, relavant_means_MD[((i)*10):((i+2)*10)], label = 'simulation values for {} server(s)'.format(i))
+        ax5.fill_between(p_range, relavant_means_MD[((i)*10):((i+2)*10)] + 0.1, relavant_means_MD[((i)*10):((i+2)*10)]- 0.1, alpha = 0.3, label = "0.05 width tolerance")
+        ax5.plot(rho_range , theoretical_det[0, :], linestyle = '--', linewidth = 1, label = "Theoretical result for {} server".format(i))
+        ax6.plot(p_range, relavant_std_MM[((i)*10):((i+2)*10)], marker = "8", label = 'standard deviation for {} server(s)'.format(i))
 
 
-for i in range(len(n_servers)):
-    plt.scatter(p_range, mean_waiting_times_D[i], marker='o',label = '%s server(s) computatioanl value' % n_servers[i], linewidth = 2)
-colors = ['cornflowerblue', 'forestgreen', 'lightcoral']
-for i in range(3):
-    plt.plot(rho_range, theoretical_det[i, :], linestyle = '--', color = colors[i] ,alpha = 0.9, label = 'theoretical value for {} server(s)'.format(i + 1))
-plt.xlabel(r'$\rho$', fontsize = 17)
-plt.ylabel("Waiting time", fontsize = 14)
-plt.title("Waiting times for M/D/n vs amount of servers available", fontsize  = 15)
-plt.legend(fontsize = 13)
-    
+ax5.legend(fontsize = 13)
+ax5.set_xlabel(r'$\rho$', fontsize = 17)
+ax5.set_ylabel("Waiting time", fontsize = 14)
+ax5.set_title("Waiting times for M/D/1 - M/D/n Queueing simulation", fontsize  = 15)
+
+ax6.legend(fontsize = 13)
+ax6.set_xlabel(r'$\rho$', fontsize = 17)
+ax6.set_ylabel("Standard deviation", fontsize = 14)
+ax6.set_title("Standard deviation for M/D/1 - M/D/n Queue simulation", fontsize  = 15)
+#%%
 # %%
-for i in range(len(n_servers)):
-    plt.plot(service_rate, mean_waiting_times[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-    
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-        env = simpy.Environment()
-        servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
-        waiting_times = []
-        setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
-        env.run(until=setup1.n_samples_reached)
-        waiting_times_rho_s[i, j, :] = setup1.waiting_times[:n_samples]
-
-#%%
-mean_waiting_times = np.zeros((len(n_servers), steps))
-
-for i in range(len(n_servers)):
-    for j in range(steps):
-        mean_waiting_times[i, j] = np.mean(waiting_times_rho_s[i, j, :])
-
-
-mean_waiting_times.shape
-# %%
-for i in range(len(n_servers)):
-    plt.scatter(p_range, mean_waiting_times[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-
-#%%
-rho_range = np.linspace(p_min, p_max, 1000)
-mu_range = 1 / rho_range
-theory = []
-
-for rho, mu in zip(rho_range, mu_range):
-    theory.append(Functions.SPTF(rho, mu, 1))
-
-#%%
-for i in range(len(n_servers)):
-    plt.plot(p_range, mean_waiting_times[i], label = '%s servers' % n_servers[i])
-plt.plot(rho_range , theory, linestyle = '--', linewidth = 3)
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-#%%
-#%#%#%#%%#%#%#%#%#%#%#%#%#%#%#%%#%#%# new new new new new new new new #%#%#%#%#%#%%#
-
-n_samples = 100000
-n_servers = np.array([1, 2, 4])
-steps = 100
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-
-waiting_times_rho_D = np.zeros((3, steps,n_samples))
-
-#%%
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-        env = simpy.Environment()
-        servers1 = simpy.Resource(env, capacity=n_servers[i])
-        waiting_times = []
-        setup1 = Setup_samples(env, arrival_rate[i], processing_capacity[j], servers1, waiting_times, n_samples,deterministic)
-        env.run(until=setup1.n_samples_reached)
-        waiting_times_rho_D[i, j, :] = setup1.waiting_times[:n_samples]
-# np.save(f'results/waiting_times_rho_md', waiting_times_rho_md)
-
-#%%
-
-mean_waiting_times_D = np.zeros((len(n_servers), steps))
-
-for i in range(len(n_servers)):
-    for j in range(steps):
-        mean_waiting_times_D[i, j] = np.mean(waiting_times_rho_D[i, j, :])
-
-
-for i in range(len(n_servers)):
-    plt.plot(p_range, mean_waiting_times_D[i], label = '%s servers' % n_servers[i])
-plt.xlabel("p")
-plt.ylabel("Waiting time")
-plt.title("Waiting times vs amount of servers available")
-plt.legend()
-#%%
