@@ -32,7 +32,6 @@ def calculate_confidence_interval(matrix):
 
     return cis
 
-
 def theoretical_mmn(rho, mu, n):
     def W(n, rho):
         def B(n, rho):
@@ -69,3 +68,40 @@ def SPTF(rho, mu, n, upp=100):
         return rho * np.exp(-x * mu) / (1 - (1 - np.exp(-x * mu) * (1 + x * mu)) * rho) ** 2
     I = integrate.quad(integrand, 0, upp)
     return I[0]
+
+def return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range):
+    
+    stds_results= np.zeros((1, 7))
+    stds_results_2= np.zeros((1, 7))
+    stds_results_3= np.zeros((1, 7))
+    p_plot_range = []
+    for i in range(4,10):
+
+        res = []
+        res1 = []
+        res2 = []
+        p_plot_range.append(p_range[i])
+        res.append([std_1000[i],std_5000[i], std_10000[i], std_20000[i], std_50000[i], \
+            std_75000[i], std_100000[i]])
+
+        res1.append([std_1000[i+10],std_5000[i+10], std_10000[i+10], std_20000[i+10], std_50000[i+10], \
+        std_75000[i+10], std_100000[i+10]])
+
+        res2.append([std_1000[i+20],std_5000[i+20], std_10000[i+20], std_20000[i+20], std_50000[i+20], \
+        std_75000[i+20], std_100000[i+20]])
+        
+        res = np.array(res)
+        res = res.reshape(1,7)
+        res1 = np.array(res1)
+        res1 = res1.reshape(1,7)
+        res2 = np.array(res2)
+        res2 = res2.reshape(1,7)
+        stds_results = np.concatenate((stds_results, res))
+        stds_results_2 = np.concatenate((stds_results_2, res1))
+        stds_results_3 = np.concatenate((stds_results_3, res2))
+
+    stds_results = stds_results[1:]
+    stds_results_2 = stds_results_2[1:]
+    stds_results_3 = stds_results_3[1:]
+
+    return stds_results, stds_results_2, stds_results_3, p_plot_range

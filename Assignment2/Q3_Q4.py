@@ -66,13 +66,24 @@ class DES_MD_LT(object):
         self.action = env.process(self.run())
 
     def deterministic(self, x):
-        '''Returns the deterministic time corresponding to a capacity of x'''
+
+        """This function returns the time of service for a deteministic system, which 
+        simply equates to 1/x
+
+        Returns:
+            float32: returns the deterministic time per task """
+
         return 1/x
 
     def longtail(self, x):
-        '''Returns a long tail distribution with mean 1/x 
-        where 25% has an exponential distribution with mean processing capacity = 5
-        and 75% an exponential with a mean so that the mean of the distribution is 1/x '''
+        """This function generates a longtail distribution with a mean value of 1/x.
+        25% of the distribution will possess a a mean processing value of 5, whilst the 
+        remaining 75% will posssess a exponential distribution
+
+        Returns:
+            float64: the sampling number from the distribution
+        """
+
         mu_big = 5
         mu_small = 0.75*x*mu_big/(mu_big-0.25*x)
         a = random.random()
@@ -107,29 +118,8 @@ class DES_MD_LT(object):
 """
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%%#%#%# going to investigate shortest task first #%#%#%#%#%#%#%#%#%%#%#%##%#%#%
-n_samples = 50000
-n_servers = np.array([1])
-steps = 10
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.995
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-waiting_times_mm1_shortest = np.zeros((1, steps, n_samples))
-waiting_times_rho_s = np.zeros((1, steps,n_samples))
-
 #%%
-for i in range(len(n_servers)):
-    for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-        env = simpy.Environment()
-        servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
-        waiting_times = []
-        setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
-        env.run(until=setup1.n_samples_reached)
-        waiting_times_rho_s[i, j, :] = setup1.waiting_times[:n_samples]
-# np.save(f'results/waiting_times_rho_s', waiting_times_rho_s)
-#%%
-n_samples = 00
+n_samples = 200000
 n_servers = np.array([1,2,4])
 steps = 10
 arrival_rate = n_servers
@@ -146,27 +136,41 @@ waiting_times_SJF_stacked.shape
 samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 
 #%%
-for x in samps:
-    print("now starting with sample {}".format(x))
-    waiting_times_SJF_stacked = np.zeros((1, runs))
-    for i in range(len(n_servers)):
-        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-            waiting_times_SJF_stacked_temp = np.zeros((1, x))
-            for k in range(runs):
-                env = simpy.Environment()
-                servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
-                waiting_times = []
-                setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, x,random.expovariate)
-                env.run(until=setup1.n_samples_reached)            
-                waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:x]))   
-            appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
-            apend = appending.reshape(1, appending.shape[0])
-            waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
 
-    waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
-    np.savetxt("SJF_0.5_0.95_{}.csv".format(x), waiting_times_SJF_stacked, delimiter=",")
+"""this has already been performed and is saved as a csv file, please proceed and run the next cell
+"""
+# for x in samps:
+#     print("now starting with sample {}".format(x))
+#     waiting_times_SJF_stacked = np.zeros((1, runs))
+#     for i in range(len(n_servers)):
+#         for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
+#             waiting_times_SJF_stacked_temp = np.zeros((1, x))
+#             for k in range(runs):
+#                 env = simpy.Environment()
+#                 servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
+#                 waiting_times = []
+#                 setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, x,random.expovariate)
+#                 env.run(until=setup1.n_samples_reached)            
+#                 waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:x]))   
+#             appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
+#             apend = appending.reshape(1, appending.shape[0])
+#             waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
+
+#     waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
+#     np.savetxt("SJF_0.5_0.95_{}.csv".format(x), waiting_times_SJF_stacked, delimiter=",")
 #%%
-waiting_times_SJF_stacked = genfromtxt('SJF_0.5_0.95.csv', delimiter=',')
+#%#%#%#%#%#%#%#%#%#%#%# INVESTIGATING UTILIZATION RATE FOR M/M/N FOR SJFS #%#%#%#%#%#%#%#%#%#%#
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 20
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 25
+
+waiting_times_SJF_stacked = genfromtxt('200000/SJF_0.5_0.95.csv', delimiter=',')
 relavant_std_MM = np.std(waiting_times_SJF_stacked, axis = 1)
 relavant_means_MM = np.mean(waiting_times_SJF_stacked, axis = 1)
 
@@ -213,21 +217,67 @@ ax2.set_title("Standard deviation for SJFS/1 - SJFS/n Queuing simulation", fonts
 ax2.tick_params(axis='both', which='major', labelsize=12)
 #%%
 #%% 
-waiting_times_SJF_stacked_10000 = genfromtxt('SJF_0.5_0.95_10000.csv', delimiter=',')
-waiting_times_SJF_stacked_50000 = genfromtxt('SJF_0.5_0.95_50000.csv', delimiter=',')
-waiting_times_SJF_stacked_100000 = genfromtxt('SJF_0.5_0.95_100000.csv', delimiter=',')
+#%#%#%#%#%#%#%%#%#%#%#%%#%# INVESTIGATING THE STD DEVIATIONS AS WE INCREASE SAMP SIZE #%#%#%#%#%#%#%#%#%#%#%#%#%
+#+#+#+#+#+#+#+#+#++#+#++#+#+ FIRSTLY LOADING ALL THE DATA #+#+#+#+#+#+#+#+#++##+#++#+#+#+
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 30
+
+waiting_times_SJF_stacked_1000 = genfromtxt('SJFS/SJF_0.5_0.95_1000.csv', delimiter=',')
+waiting_times_SJF_stacked_5000 = genfromtxt('SJFS/SJF_0.5_0.95_5000.csv', delimiter=',')
+waiting_times_SJF_stacked_10000 = genfromtxt('SJFS/SJF_0.5_0.95_10000.csv', delimiter=',')
+waiting_times_SJF_stacked_20000 = genfromtxt('SJFS/SJF_0.5_0.95_20000.csv', delimiter=',')
+waiting_times_SJF_stacked_50000 = genfromtxt('SJFS/SJF_0.5_0.95_50000.csv', delimiter=',')
+waiting_times_SJF_stacked_75000 = genfromtxt('SJFS/SJF_0.5_0.95_75000.csv', delimiter=',')
+waiting_times_SJF_stacked_100000 = genfromtxt('SJFS/SJF_0.5_0.95_100000.csv', delimiter=',')
+std_1000 = np.std(waiting_times_SJF_stacked_1000, axis = 1)
+std_5000 = np.std(waiting_times_SJF_stacked_5000, axis = 1)
 std_10000 = np.std(waiting_times_SJF_stacked_10000, axis = 1)
+std_20000 = np.std(waiting_times_SJF_stacked_20000, axis = 1)
 std_50000 = np.std(waiting_times_SJF_stacked_50000, axis = 1)
+std_75000 = np.std(waiting_times_SJF_stacked_75000, axis = 1)
 std_100000 = np.std(waiting_times_SJF_stacked_100000, axis = 1)
 
-plt.scatter(p_range[9], std_10000[9])
-plt.scatter(p_range[9], std_50000[9])
-plt.scatter(p_range[9], std_100000[9])
+stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
+
+#%%
+#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#
+fig, ax = plt.subplots(figsize = (7,7))
+fig, ax2 = plt.subplots(figsize = (7,7))
+fig, ax3 = plt.subplots(figsize = (7,7))
+
+for i in range(4):
+    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples", fontsize = 15)
+ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_title('M/M/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13)
+
+ax2.set_xlabel("Number of samples", fontsize = 15)
+ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_title('SJFS M/M/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13)
+
+ax3.set_xlabel("Number of samples", fontsize = 15)
+ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_title('SJFS M/M/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13)
+#%%
 #%%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%
 #%#%#%#%#%#%#%#%#%%#%#%# investigating deterministic distributions #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
-#global variables
-# %%
 n_samples = 200000
 n_servers = np.array([1,2,4])
 steps = 10
@@ -241,30 +291,42 @@ runs = 30
 waiting_times_MDN_stacked = np.zeros((1, runs))
 
 #%%
+"""this has already been performed and is saved as a csv file, please proceed and run the next cell
+"""
+# samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
+# for x in samps:
+#     print("currently at {} sample range".format(x))
+#     waiting_times_MDN_stacked = np.zeros((1, runs))
+#     for i in range(len(n_servers)):
+#         for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+#             waiting_times_MDN_stacked_temp = np.zeros((1, x))
+#             for k in range(runs):
+#                 env = simpy.Environment()
+#                 servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
+#                 waiting_times = []
+#                 setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, x,'deterministic')
+#                 env.run(until=setup3.num_samples_count)
+#                 waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup3.waiting_times[:x]))   
+#             appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
+#             apend = appending.reshape(1, appending.shape[0])
+#             waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
 
-samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
-for x in samps:
-    print("currently at {} sample range".format(x))
-    waiting_times_MDN_stacked = np.zeros((1, runs))
-    for i in range(len(n_servers)):
-        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
-            waiting_times_MDN_stacked_temp = np.zeros((1, x))
-            for k in range(runs):
-                env = simpy.Environment()
-                servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
-                waiting_times = []
-                setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, x,'deterministic')
-                env.run(until=setup3.num_samples_count)
-                waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup3.waiting_times[:x]))   
-            appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
-            apend = appending.reshape(1, appending.shape[0])
-            waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
-
-    waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
-    np.savetxt("MDN_0.5_0.95_{}.csv".format(x), waiting_times_MDN_stacked, delimiter=",")
+#     waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
+#     np.savetxt("MDN_0.5_0.95_{}.csv".format(x), waiting_times_MDN_stacked, delimiter=",")
 
 #%%
-waiting_times_MDN_stacked = genfromtxt("MDN_0.5_0.95.csv", delimiter=',')
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 20
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 25
+
+
+waiting_times_MDN_stacked = genfromtxt("200000/MDN_0.5_0.95.csv", delimiter=',')
 
 relavant_std_MD = np.std(waiting_times_MDN_stacked, axis = 1)
 relavant_means_MD = np.mean(waiting_times_MDN_stacked, axis = 1)
@@ -324,6 +386,67 @@ ax6.set_title("Standard deviation for M/D/1 - M/D/n Queue simulation", fontsize 
 ax6.tick_params(axis='both', which='major', labelsize=13)
 fig6.savefig('M_D_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
 
+
+#%%
+#%#%#%#%#%#%#%%#%#%#%#%%#%# INVESTIGATING THE STD DEVIATIONS AS WE INCREASE SAMP SIZE #%#%#%#%#%#%#%#%#%#%#%#%#%
+#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#+#+#+ DETERMINISTIC #%#%#%#%#%#%#%#%%#%#%#%#%#%#%%#%#%#%#%%##
+#+#+#+#+#+#+#+#+#++#+#++#+#+ FIRSTLY LOADING ALL THE DATA #+#+#+#+#+#+#+#+#++##+#++#+#+#+
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 30
+
+waiting_times_MDN_stacked_1000 = genfromtxt('MDN/MDN_0.5_0.95_1000.csv', delimiter=',')
+waiting_times_MDN_stacked_5000 = genfromtxt('MDN/MDN_0.5_0.95_5000.csv', delimiter=',')
+waiting_times_MDN_stacked_10000 = genfromtxt('MDN/MDN_0.5_0.95_10000.csv', delimiter=',')
+waiting_times_MDN_stacked_20000 = genfromtxt('MDN/MDN_0.5_0.95_20000.csv', delimiter=',')
+waiting_times_MDN_stacked_50000 = genfromtxt('MDN/MDN_0.5_0.95_50000.csv', delimiter=',')
+waiting_times_MDN_stacked_75000 = genfromtxt('MDN/MDN_0.5_0.95_75000.csv', delimiter=',')
+waiting_times_MDN_stacked_100000 = genfromtxt('MDN/MDN_0.5_0.95_100000.csv', delimiter=',')
+std_1000 = np.std(waiting_times_MDN_stacked_1000, axis = 1)
+std_5000 = np.std(waiting_times_MDN_stacked_5000, axis = 1)
+std_10000 = np.std(waiting_times_MDN_stacked_10000, axis = 1)
+std_20000 = np.std(waiting_times_MDN_stacked_20000, axis = 1)
+std_50000 = np.std(waiting_times_MDN_stacked_50000, axis = 1)
+std_75000 = np.std(waiting_times_MDN_stacked_75000, axis = 1)
+std_100000 = np.std(waiting_times_MDN_stacked_100000, axis = 1)
+
+
+stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
+
+#%%
+fig, ax = plt.subplots(figsize = (7,7))
+fig, ax2 = plt.subplots(figsize = (7,7))
+fig, ax3 = plt.subplots(figsize = (7,7))
+
+for i in range(4):
+    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples", fontsize = 15)
+ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_title('M/D/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13)
+
+ax2.set_xlabel("Number of samples", fontsize = 15)
+ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_title('M/D/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13)
+
+ax3.set_xlabel("Number of samples", fontsize = 15)
+ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_title('M/D/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13)
+
 #%%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%#% going to investigate long tailed distribution #%#%#%#%#%#%#%#%#%%#%%#
@@ -342,29 +465,38 @@ runs = 30
 waiting_times_MLN_stacked = np.zeros((1, runs))
 
 #%%
-samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
-for x in samps:
-    print("currently at {} sample range".format(x))
-    waiting_times_MLN_stacked = np.zeros((1, runs))
-    for i in range(len(n_servers)):
-        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
-            waiting_times_MLN_stacked_temp = np.zeros((1, x))
-            for k in range(runs):
-                env = simpy.Environment()
-                servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
-                waiting_times = []
-                setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, x,'longtail')
-                env.run(until=setup2.num_samples_count)
-                waiting_times_MLN_stacked_temp = np.vstack((waiting_times_MLN_stacked_temp, setup2.waiting_times[:x]))   
-            appending = np.mean(waiting_times_MLN_stacked_temp[1:], axis = 1)
-            apend = appending.reshape(1, appending.shape[0])
-            waiting_times_MLN_stacked = np.vstack((waiting_times_MLN_stacked,apend))
+# samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
+# for x in samps:
+#     print("currently at {} sample range".format(x))
+#     waiting_times_MLN_stacked = np.zeros((1, runs))
+#     for i in range(len(n_servers)):
+#         for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+#             waiting_times_MLN_stacked_temp = np.zeros((1, x))
+#             for k in range(runs):
+#                 env = simpy.Environment()
+#                 servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
+#                 waiting_times = []
+#                 setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, x,'longtail')
+#                 env.run(until=setup2.num_samples_count)
+#                 waiting_times_MLN_stacked_temp = np.vstack((waiting_times_MLN_stacked_temp, setup2.waiting_times[:x]))   
+#             appending = np.mean(waiting_times_MLN_stacked_temp[1:], axis = 1)
+#             apend = appending.reshape(1, appending.shape[0])
+#             waiting_times_MLN_stacked = np.vstack((waiting_times_MLN_stacked,apend))
 
-    waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
-    np.savetxt("MLN_0.5_0.95_{}.csv".format(x), waiting_times_MLN_stacked, delimiter=",")
+#     waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
+#     np.savetxt("MLN_0.5_0.95_{}.csv".format(x), waiting_times_MLN_stacked, delimiter=",")
 #%%
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 20
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 25
 
-waiting_times_MLN_stacked = genfromtxt('MLN_0.5_0.95.csv', delimiter=',')
+waiting_times_MLN_stacked = genfromtxt('200000/MLN_0.5_0.95.csv', delimiter=',')
 waiting_times_MLN_stacked.shape
 #%%
 relavant_std_ML = np.std(waiting_times_MLN_stacked, axis = 1)
@@ -426,4 +558,63 @@ ax4.set_title("Standard deviation for M/L/1 - M/L/n Queue simulation", fontsize 
 ax4.tick_params(axis='both', which='major', labelsize=13)
 fig4.savefig('M_L_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
 
+# %%
+#%#%#%#%#%#%#%%#%#%#%#%%#%# INVESTIGATING THE STD DEVIATIONS AS WE INCREASE SAMP SIZE #%#%#%#%#%#%#%#%#%#%#%#%#%
+#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#+#+#+ DETERMINISTIC #%#%#%#%#%#%#%#%%#%#%#%#%#%#%%#%#%#%#%%##
+#+#+#+#+#+#+#+#+#++#+#++#+#+ FIRSTLY LOADING ALL THE DATA #+#+#+#+#+#+#+#+#++##+#++#+#+#+
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 30
+
+waiting_times_MLN_stacked_1000 = genfromtxt('MLN/MLN_0.5_0.95_1000.csv', delimiter=',')
+waiting_times_MLN_stacked_5000 = genfromtxt('MLN/MLN_0.5_0.95_5000.csv', delimiter=',')
+waiting_times_MLN_stacked_10000 = genfromtxt('MLN/MLN_0.5_0.95_10000.csv', delimiter=',')
+waiting_times_MLN_stacked_20000 = genfromtxt('MLN/MLN_0.5_0.95_20000.csv', delimiter=',')
+waiting_times_MLN_stacked_50000 = genfromtxt('MLN/MLN_0.5_0.95_50000.csv', delimiter=',')
+waiting_times_MLN_stacked_75000 = genfromtxt('MLN/MLN_0.5_0.95_75000.csv', delimiter=',')
+waiting_times_MLN_stacked_100000 = genfromtxt('MLN/MLN_0.5_0.95_100000.csv', delimiter=',')
+std_1000 = np.std(waiting_times_MLN_stacked_1000, axis = 1)
+std_5000 = np.std(waiting_times_MLN_stacked_5000, axis = 1)
+std_10000 = np.std(waiting_times_MLN_stacked_10000, axis = 1)
+std_20000 = np.std(waiting_times_MLN_stacked_20000, axis = 1)
+std_50000 = np.std(waiting_times_MLN_stacked_50000, axis = 1)
+std_75000 = np.std(waiting_times_MLN_stacked_75000, axis = 1)
+std_100000 = np.std(waiting_times_MLN_stacked_100000, axis = 1)
+
+
+stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
+
+#%%
+fig, ax = plt.subplots(figsize = (7,7))
+fig, ax2 = plt.subplots(figsize = (7,7))
+fig, ax3 = plt.subplots(figsize = (7,7))
+
+for i in range(4):
+    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples", fontsize = 15)
+ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_title('M/L/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13)
+
+ax2.set_xlabel("Number of samples", fontsize = 15)
+ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_title('M/L/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13)
+
+ax3.set_xlabel("Number of samples", fontsize = 15)
+ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_title('M/L/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13)
 # %%
