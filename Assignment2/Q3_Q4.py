@@ -158,6 +158,37 @@ samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 
 #     waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
 #     np.savetxt("SJF_0.5_0.95_{}.csv".format(x), waiting_times_SJF_stacked, delimiter=",")
+
+#%%
+#%#%#%%#%#% YKE YKE YKE YKE YKE #^%#%^#%#%#%#%#%#%#%%#%#
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 25
+
+# waiting_times_SJF = np.zeros((3, steps, n_samples))
+# waiting_times_SJF_stacked = np.zeros((1, runs))
+# for i in range(len(n_servers)):
+#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
+#         waiting_times_SJF_stacked_temp = np.zeros((1, n_samples))
+#         for k in range(runs):
+#             env = simpy.Environment()
+#             servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
+#             waiting_times = []
+#             setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
+#             env.run(until=setup1.n_samples_reached)            
+#             waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:n_samples]))   
+#         appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
+#         apend = appending.reshape(1, appending.shape[0])
+#         waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
+
+# waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
+# np.savetxt("SJF_0.5_0.95.csv", waiting_times_SJF_stacked, delimiter=",")
 #%%
 #%#%#%#%#%#%#%#%#%#%#%# INVESTIGATING UTILIZATION RATE FOR M/M/N FOR SJFS #%#%#%#%#%#%#%#%#%#%#
 n_samples = 200000
@@ -345,7 +376,7 @@ for i in n_servers:
 theoretical_det = theoretical_det[1:]
 #%%
 
-fig5, ax5 = plt.subplots(figsize = (8,8))
+fig5, ax5 = plt.subplots(figsize = (7,7))
 
 l1 = ax5.scatter(p_range, relavant_means_MD[0:20], marker = "^", s = 80, c ='teal')
 m1 = ax5.plot(rho_range , theoretical_det[0, :], linestyle = '--', linewidth = 1.5, c = 'teal')
@@ -372,7 +403,7 @@ ax5.legend(["simulation values for 1 server", "Theoretical result for 1 server",
 fig5.savefig('M_D_N_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
 
-fig6, ax6 = plt.subplots(figsize = (8,8))
+fig6, ax6 = plt.subplots(figsize = (7,7))
 
 ax6.plot(p_range, relavant_std_MD[0:20], marker = "^", label = 'standard deviation for 1 server(s)', linewidth = 2, markersize = 8, c = 'teal')
 ax6.plot(p_range, relavant_std_MD[20:40], marker = "o", linestyle = "--", label = 'standard deviation for 2 server(s)', linewidth = 2, markersize = 8, c = 'm')
@@ -517,7 +548,7 @@ theoretical_longtail = theoretical_longtail[1:]
 
 #%%
 
-fig3, ax3 = plt.subplots(figsize = (8,8))
+fig3, ax3 = plt.subplots(figsize = (7,7))
 
 l1 = ax3.scatter(p_range, relavant_means_ML[0:20], marker = "^", s = 80)
 m1 = ax3.plot(rho_range , theoretical_longtail[0, :], linestyle = '--', linewidth = 1.5)
@@ -544,7 +575,7 @@ ax3.legend(["simulation values for 1 server", "Theoretical result for 1 server",
 
 fig3.savefig('M_L_N_QUEUE.png', bbox_inches='tight', dpi = 600)
 
-fig4, ax4 = plt.subplots(figsize = (8,8))
+fig4, ax4 = plt.subplots(figsize = (7,7))
 
 ax4.plot(p_range, relavant_std_ML[0:20], marker = "^", label = 'standard deviation for 1 server(s)', linewidth = 2, markersize = 8)
 ax4.plot(p_range, relavant_std_ML[20:40], marker = "o", linestyle = "--", label = 'standard deviation for 2 server(s)', linewidth = 2, markersize = 8)
