@@ -12,7 +12,6 @@ from numpy import genfromtxt
 
 #%%         
 class Setup_shortestjob(object):
-    '''Class to setup Simpy environment for SPTF queues'''
     def __init__(self, env, arrival_rate, processing_capacity, server, waiting_times, n_samples, p_distribution):
         self.env = env
         self.arrival_rate = arrival_rate
@@ -26,7 +25,13 @@ class Setup_shortestjob(object):
 
 
     def Shortest_task_first(self, processing_time, waiting_time):
-        """task arrives, is served with a priority equal to the processing time and leaves."""
+        """This function executes the shortest job first and serves this as a priority
+
+        Args:
+            processing_time (int): the processing rate that is used
+            waiting_time (list): a list of waiting times, serving the shortest one with priority
+
+        """
         arrive = self.env.now
         with self.server.request(priority=processing_time) as req:
             yield req
@@ -34,6 +39,10 @@ class Setup_shortestjob(object):
             yield self.env.timeout(processing_time)
         
     def run_shortest_task_first(self):
+
+        """This function executes the shortest job first from the list of processing times
+        going through the processing times to isolate the shortest job first and then appends
+        the time taken to serve that customer """
         while True:
             if  len(self.waiting_times)>self.n_samples:
                 self.n_samples_reached.succeed()
@@ -46,7 +55,7 @@ class Setup_shortestjob(object):
 
 
 def task(env, server, processing_time, waiting_time):
-    """task arrives, is served and leaves."""
+    """this function simply accepts a task, processes the request and then the customer leaves the system"""
     arrive = env.now
     with server.request() as req:
         yield req
@@ -144,7 +153,7 @@ class DES_MD_LT(object):
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%# INVESTIGATING UTILIZATION RATE FOR M/M/N FOR SJFS #%#%#%#%#%#%#%#%#%#%#
-n_samples = 200000
+n_samples = 100000
 n_servers = np.array([1,2,4])
 steps = 20
 arrival_rate = n_servers
@@ -154,6 +163,7 @@ p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
 runs = 25
 
+#%%
 waiting_times_SJF_stacked = genfromtxt('200000/SJF_0.5_0.95.csv', delimiter=',')
 relavant_std_MM = np.std(waiting_times_SJF_stacked, axis = 1)
 relavant_means_MM = np.mean(waiting_times_SJF_stacked, axis = 1)
@@ -273,6 +283,8 @@ ax3.legend(fontsize = 13)
 # fig3.savefig('SJFS_STDS_M_M_4_QUEUE.png', bbox_inches='tight', dpi = 350 )
 
 #%%
+#+#+#+#+#+#++#+#+#+#+#+#+#+# plotting the results #+#+#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#++#+#
+#+#+#+#+#+#++#+#+#+#+#+#+#+# FOR AVERAGE WAITING TIMES #+#+#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#++#+#
 fig, ax = plt.subplots(figsize = (7,7))
 fig2, ax2 = plt.subplots(figsize = (7,7))
 fig3, ax3 = plt.subplots(figsize = (7,7))
@@ -308,15 +320,13 @@ ax3.legend(fontsize = 13, loc = 'best')
 #%#%#%#%#%#%#%#%#%%#%#%# investigating deterministic distributions #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 10
+steps = 20
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-runs = 30
-
-waiting_times_MDN_stacked = np.zeros((1, runs))
+runs = 25
 
 #%%
 """this has already been performed and is saved as a csv file, please proceed and run the next cell
@@ -343,17 +353,6 @@ waiting_times_MDN_stacked = np.zeros((1, runs))
 #     np.savetxt("MDN_0.5_0.95_{}.csv".format(x), waiting_times_MDN_stacked, delimiter=",")
 
 #%%
-n_samples = 200000
-n_servers = np.array([1,2,4])
-steps = 20
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-runs = 25
-
-
 waiting_times_MDN_stacked = genfromtxt("200000/MDN_0.5_0.95.csv", delimiter=',')
 
 relavant_std_MD = np.std(waiting_times_MDN_stacked, axis = 1)
@@ -459,6 +458,8 @@ stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_st
 avgs_results, avgs_results_2, avgs_results_3, p_plot_range = Functions.return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range)
 
 #%%
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# STD DEVIATIONS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
 fig, ax = plt.subplots(figsize = (7,7))
 fig2, ax2 = plt.subplots(figsize = (7,7))
 fig3, ax3 = plt.subplots(figsize = (7,7))
@@ -490,7 +491,8 @@ ax3.legend(fontsize = 13)
 # fig3.savefig('STD_M_D_4_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
 #%%
-
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# AVERAGES #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
 fig, ax = plt.subplots(figsize = (7,7))
 fig2, ax2 = plt.subplots(figsize = (7,7))
 fig3, ax3 = plt.subplots(figsize = (7,7))
@@ -527,15 +529,13 @@ ax3.legend(fontsize = 13, loc = 'best')
 #%%
 n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 10
+steps = 20
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-runs = 30
-
-waiting_times_MLN_stacked = np.zeros((1, runs))
+runs = 25
 
 #%%
 # samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
@@ -559,16 +559,6 @@ waiting_times_MLN_stacked = np.zeros((1, runs))
 #     waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
 #     np.savetxt("MLN_0.5_0.95_{}.csv".format(x), waiting_times_MLN_stacked, delimiter=",")
 #%%
-n_samples = 200000
-n_servers = np.array([1,2,4])
-steps = 20
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-runs = 25
-
 waiting_times_MLN_stacked = genfromtxt('200000/MLN_0.5_0.95.csv', delimiter=',')
 waiting_times_MLN_stacked.shape
 #%%
@@ -664,6 +654,8 @@ std_100000 = np.std(waiting_times_MLN_stacked_100000, axis = 1)
 stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
 
 #%%
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# STD DEVIATIONS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
 fig, ax = plt.subplots(figsize = (7,7))
 fig2, ax2 = plt.subplots(figsize = (7,7))
 fig3, ax3 = plt.subplots(figsize = (7,7))
@@ -694,15 +686,8 @@ ax3.tick_params(axis='both', which='major', labelsize=13)
 ax3.legend(fontsize = 13)
 # fig3.savefig('STDS_M_L_4_QUEUE.png', bbox_inches='tight', dpi = 600 )
 # %%
-n_samples = 200000
-n_servers = np.array([1,2,4])
-steps = 10
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-runs = 30
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# AVERAGES #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
+#+#+#+#+#+#+#+#+#++#+#++#+#+#+#++#+# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#++##+#++#+#+#+#+#++#+#
 
 avg_1000 = np.mean(waiting_times_MLN_stacked_1000, axis = 1)
 avg_5000 = np.mean(waiting_times_MLN_stacked_5000, axis = 1)

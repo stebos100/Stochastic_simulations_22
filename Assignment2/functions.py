@@ -45,20 +45,20 @@ def theoretical_mmn(rho, mu, n):
     return w / (n * mu) * ( 1 / (1 - rho))
 
 def MDn(rho, mu, n):
-    '''A function to calculate the theoretical prediction for M/D/n'''
-    EW_MMn = theoretical_mmn(rho, mu, n)
+    '''This function calculates the theoretical prediction for M/D/n'''
+    EXPECTATION_mmn = theoretical_mmn(rho, mu, n)
     C = 0
-    return (C + 1) / 2 * EW_MMn
+    return (C + 1) / 2 * EXPECTATION_mmn
 
 def longtail_pred(rho, mu, n):
-    '''A function to calculate the theoretical prediction for M/l/n'''
-    
+    '''This function calculates the theoretical prediction for part hyper exponential M/H/n'''
+
     p = 0.25
     ux = 5
     uy = 0.75 * mu * ux / (ux - 0.25 * mu)
     C = (p * 1/ux ** 2 + (1 - p) * p * (1/ux - 1/uy) ** 2 + (1 - p) * 1/uy ** 2) / (p * 1/ux + (1 - p) * 1/uy) ** 2
-    EW_MMn = theoretical_mmn(rho, mu, n)
-    return (C + 1) / 2 * EW_MMn
+    EXPECTATION_mmn = theoretical_mmn(rho, mu, n)
+    return (C + 1) / 2 * EXPECTATION_mmn
 
 def SPTF(rho, mu, n, upp=100):
     '''A function to calculate the theoretical prediction for M/M/n-SPTF'''
@@ -70,8 +70,22 @@ def SPTF(rho, mu, n, upp=100):
     return I[0]
 
 def return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range):
-    
+    """this function takes the standard deviations for the various simulations and reformats them 
+    to comply with what is desired ie the standard deviations at a specific utlization rate 
 
+    Args:
+        std_1000 (list): a list containin the std deviations for 1000 samples and 50 runs
+        std_5000 (list): a list containin the std deviations for 5000 samples and 50 runs
+        std_10000 (list): a list containin the std deviations for 10000 samples and 50 runs
+        std_20000 (list): a list containin the std deviations for 20000 samples and 50 runs
+        std_50000 (list): a list containin the std deviations for 50000 samples and 50 runs
+        std_75000 (list): a list containin the std deviations for 75000 samples and 50 runs
+        std_100000 (list): a list containin the std deviations for 100000 samples and 50 runs
+        p_range (list): a list containin the relavant p values for analysis
+
+    Returns:
+         lists(n = 1,2,4 servers): returns a list for all the various server values 
+    """
     stds_results= np.zeros((1, 7))
     stds_results_2= np.zeros((1, 7))
     stds_results_3= np.zeros((1, 7))
@@ -108,7 +122,22 @@ def return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, 
     return stds_results, stds_results_2, stds_results_3, p_plot_range
 
 def return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range):
-    
+    """this function takes the average waiting times for the various simulations and reformats them 
+    to comply with what is desired ie the standard deviations at a specific utlization rate 
+
+    Args:
+        avg_1000 (list): a list containin the avg waiting times for 1000 samples and 50 runs
+        avg_5000 (list): a list containin the avg waiting times for 5000 samples and 50 runs
+        avg_10000 (list): a list containin the avg waiting times for 10000 samples and 50 runs
+        avg_20000 (list): a list containin the avg waiting times for 20000 samples and 50 runs
+        avg_50000 (list): a list containin the avg waiting times for 50000 samples and 50 runs
+        avg_75000 (list): a list containin the avg waiting times for 75000 samples and 50 runs
+        avg_100000 (list): a list containin the avg waiting times for 100000 samples and 50 runs
+        p_range (list): a list containin the relavant p values for analysis
+
+    Returns:
+            lists(n = 1,2,4 servers): returns a list for all the various server values 
+    """
 
     avgs_results= np.zeros((1, 7))
     avgs_results_2= np.zeros((1, 7))
