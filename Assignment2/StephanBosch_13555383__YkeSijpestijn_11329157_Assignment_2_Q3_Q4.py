@@ -10,7 +10,9 @@ import functions as Functions
 plt.style.use("seaborn")
 from numpy import genfromtxt
 
-#%%         
+#%%    
+
+     
 class Setup_shortestjob(object):
     def __init__(self, env, arrival_rate, processing_capacity, server, waiting_times, n_samples, p_distribution):
         self.env = env
@@ -565,6 +567,10 @@ waiting_times_MLN_stacked.shape
 relavant_std_ML = np.std(waiting_times_MLN_stacked, axis = 1)
 relavant_means_ML = np.mean(waiting_times_MLN_stacked, axis = 1)
 
+
+#%%
+
+relavant_means_ML[13]
 #%%
 rho_range = np.linspace(p_min, p_max, 1000)
 mu_range = 1 / rho_range
