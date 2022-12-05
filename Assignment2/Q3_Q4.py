@@ -118,25 +118,8 @@ class DES_MD_LT(object):
 """
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%%#%#%# going to investigate shortest task first #%#%#%#%#%#%#%#%#%%#%#%##%#%#%
-#%%
-n_samples = 200000
-n_servers = np.array([1,2,4])
-steps = 10
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-runs = 30
-
-waiting_times_SJF = np.zeros((3, steps, n_samples))
-waiting_times_SJF_stacked = np.zeros((1, runs))
-
-waiting_times_SJF_stacked.shape
-samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 
 #%%
-
 """this has already been performed and is saved as a csv file, please proceed and run the next cell
 """
 # for x in samps:
@@ -160,36 +143,6 @@ samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 #     np.savetxt("SJF_0.5_0.95_{}.csv".format(x), waiting_times_SJF_stacked, delimiter=",")
 
 #%%
-#%#%#%%#%#% YKE YKE YKE YKE YKE #^%#%^#%#%#%#%#%#%#%%#%#
-n_samples = 200000
-n_servers = np.array([1,2,4])
-steps = 10
-arrival_rate = n_servers
-p_min = 0.5
-p_max = 0.95
-p_range = np.linspace(p_min, p_max, steps)
-service_rate = (1 / p_range)
-runs = 25
-
-# waiting_times_SJF = np.zeros((3, steps, n_samples))
-# waiting_times_SJF_stacked = np.zeros((1, runs))
-# for i in range(len(n_servers)):
-#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-#         waiting_times_SJF_stacked_temp = np.zeros((1, n_samples))
-#         for k in range(runs):
-#             env = simpy.Environment()
-#             servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
-#             waiting_times = []
-#             setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
-#             env.run(until=setup1.n_samples_reached)            
-#             waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:n_samples]))   
-#         appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
-#         apend = appending.reshape(1, appending.shape[0])
-#         waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
-
-# waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
-# np.savetxt("SJF_0.5_0.95.csv", waiting_times_SJF_stacked, delimiter=",")
-#%%
 #%#%#%#%#%#%#%#%#%#%#%# INVESTIGATING UTILIZATION RATE FOR M/M/N FOR SJFS #%#%#%#%#%#%#%#%#%#%#
 n_samples = 200000
 n_servers = np.array([1,2,4])
@@ -205,8 +158,6 @@ waiting_times_SJF_stacked = genfromtxt('200000/SJF_0.5_0.95.csv', delimiter=',')
 relavant_std_MM = np.std(waiting_times_SJF_stacked, axis = 1)
 relavant_means_MM = np.mean(waiting_times_SJF_stacked, axis = 1)
 
-cis  = Functions.calculate_confidence_interval(waiting_times_SJF_stacked)
-cis = cis[1:]
 #%%
 rho_range = np.linspace(p_min, p_max, 100)
 mu_range = 1 / rho_range
@@ -239,14 +190,15 @@ ax1.set_xlabel( "Utilization rate " r'$\rho$', fontsize = 15)
 ax1.set_ylabel(r'$\bar{W}$', fontsize = 15)
 ax1.set_title("Waiting times for SJFS/1 - SJFS/n Queuing simulation", fontsize  = 15)
 ax1.tick_params(axis='both', which='major', labelsize=13)
-
+# fig.savefig('SJFS_M_M_N_QUEUE.png', bbox_inches='tight', dpi = 300 )
 
 ax2.legend(fontsize = 13)
 ax2.set_xlabel("Utilization rate " r'$\rho$', fontsize = 15)
 ax2.set_ylabel(r'$S[\bar{W}]$', fontsize = 15)
 ax2.set_title("Standard deviation for SJFS/1 - SJFS/n Queuing simulation", fontsize  = 15)
 ax2.tick_params(axis='both', which='major', labelsize=12)
-#%%
+# fig2.savefig('SJFS_STD__M_M_N_QUEUE.png', bbox_inches='tight', dpi = 300 )
+
 #%% 
 #%#%#%#%#%#%#%%#%#%#%#%%#%# INVESTIGATING THE STD DEVIATIONS AS WE INCREASE SAMP SIZE #%#%#%#%#%#%#%#%#%#%#%#%#%
 #+#+#+#+#+#+#+#+#++#+#++#+#+ FIRSTLY LOADING ALL THE DATA #+#+#+#+#+#+#+#+#++##+#++#+#+#+
@@ -259,6 +211,7 @@ p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
 runs = 30
+samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 
 waiting_times_SJF_stacked_1000 = genfromtxt('SJFS/SJF_0.5_0.95_1000.csv', delimiter=',')
 waiting_times_SJF_stacked_5000 = genfromtxt('SJFS/SJF_0.5_0.95_5000.csv', delimiter=',')
@@ -267,6 +220,7 @@ waiting_times_SJF_stacked_20000 = genfromtxt('SJFS/SJF_0.5_0.95_20000.csv', deli
 waiting_times_SJF_stacked_50000 = genfromtxt('SJFS/SJF_0.5_0.95_50000.csv', delimiter=',')
 waiting_times_SJF_stacked_75000 = genfromtxt('SJFS/SJF_0.5_0.95_75000.csv', delimiter=',')
 waiting_times_SJF_stacked_100000 = genfromtxt('SJFS/SJF_0.5_0.95_100000.csv', delimiter=',')
+
 std_1000 = np.std(waiting_times_SJF_stacked_1000, axis = 1)
 std_5000 = np.std(waiting_times_SJF_stacked_5000, axis = 1)
 std_10000 = np.std(waiting_times_SJF_stacked_10000, axis = 1)
@@ -275,36 +229,79 @@ std_50000 = np.std(waiting_times_SJF_stacked_50000, axis = 1)
 std_75000 = np.std(waiting_times_SJF_stacked_75000, axis = 1)
 std_100000 = np.std(waiting_times_SJF_stacked_100000, axis = 1)
 
+avg_1000 = np.mean(waiting_times_SJF_stacked_1000, axis = 1)
+avg_5000 = np.mean(waiting_times_SJF_stacked_5000, axis = 1)
+avg_10000 = np.mean(waiting_times_SJF_stacked_10000, axis = 1)
+avg_20000 = np.mean(waiting_times_SJF_stacked_20000, axis = 1)
+avg_50000 = np.mean(waiting_times_SJF_stacked_50000, axis = 1)
+avg_75000 = np.mean(waiting_times_SJF_stacked_75000, axis = 1)
+avg_100000 = np.mean(waiting_times_SJF_stacked_100000, axis = 1)
+
 stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
+avgs_results, avgs_results_2, avgs_results_3, p_plot_range = Functions.return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range)
 
 #%%
 #%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%#%# PLOTTING THE RESULTS #+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#+#
 fig, ax = plt.subplots(figsize = (7,7))
-fig, ax2 = plt.subplots(figsize = (7,7))
-fig, ax3 = plt.subplots(figsize = (7,7))
+fig2, ax2 = plt.subplots(figsize = (7,7))
+fig3, ax3 = plt.subplots(figsize = (7,7))
 
-for i in range(4):
+for i in range(6):
     ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
     ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
     ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
 
-ax.set_xlabel("Number of samples", fontsize = 15)
-ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax.set_title('M/M/1 analysis for increasing sample sizes', fontsize = 16)
 ax.tick_params(axis='both', which='major', labelsize=13)
 ax.legend(fontsize = 13)
+# fig.savefig('SJFS_STDS_M_M_1_QUEUE.png', bbox_inches='tight', dpi = 350 )
 
-ax2.set_xlabel("Number of samples", fontsize = 15)
-ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax2.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax2.set_title('SJFS M/M/2 analysis for increasing sample sizes', fontsize = 16)
 ax2.tick_params(axis='both', which='major', labelsize=13)
 ax2.legend(fontsize = 13)
+# fig2.savefig('SJFS_STDS_M_M_2_QUEUE.png', bbox_inches='tight', dpi = 350 )
 
-ax3.set_xlabel("Number of samples", fontsize = 15)
-ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax3.set_title('SJFS M/M/4 analysis for increasing sample sizes', fontsize = 16)
 ax3.tick_params(axis='both', which='major', labelsize=13)
 ax3.legend(fontsize = 13)
+# fig3.savefig('SJFS_STDS_M_M_4_QUEUE.png', bbox_inches='tight', dpi = 350 )
+
+#%%
+fig, ax = plt.subplots(figsize = (7,7))
+fig2, ax2 = plt.subplots(figsize = (7,7))
+fig3, ax3 = plt.subplots(figsize = (7,7))
+
+for i in range(6):
+    ax.plot(samps, avgs_results[i,:,], marker = "h", linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, avgs_results_2[i,:,],marker = "^",  linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, avgs_results_3[i,:,], marker = "o",linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax.set_title('SJFS M/M/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13)
+# fig.savefig('SJFS_AVGS_M_M_1_QUEUE.png', bbox_inches='tight', dpi = 350 )
+
+ax2.set_xlabel("Number of samples(customers", fontsize = 15)
+ax2.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax2.set_title(' SJFS M/M/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13)
+# fig2.savefig('SJFS_AVGS_M_M_2_QUEUE.png', bbox_inches='tight', dpi = 350 )
+
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax3.set_title('SJFS M/M/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13, loc = 'best')
+# fig3.savefig('SJFS_AVGS_M_M_4_QUEUE.png', bbox_inches='tight', dpi = 350 )
 #%%
 #%%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%
@@ -362,6 +359,7 @@ waiting_times_MDN_stacked = genfromtxt("200000/MDN_0.5_0.95.csv", delimiter=',')
 relavant_std_MD = np.std(waiting_times_MDN_stacked, axis = 1)
 relavant_means_MD = np.mean(waiting_times_MDN_stacked, axis = 1)
 
+
 #%%
 rho_range = np.linspace(p_min, p_max, 1000)
 mu_range = 1 / rho_range
@@ -400,7 +398,7 @@ ax5.tick_params(axis='both', which='major', labelsize=13)
 ax5.legend(["simulation values for 1 server", "Theoretical result for 1 server", \
    "simulation values for 2 server(s)" , "Theoretical result for 2 server(s)", "simulation values for 4 server(s)", \
        "Theoretical result for 4 server(s)", "0.05 std deviation tolerance value"], fontsize =13)
-fig5.savefig('M_D_N_QUEUE.png', bbox_inches='tight', dpi = 600 )
+# fig5.savefig('M_D_N_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
 
 fig6, ax6 = plt.subplots(figsize = (7,7))
@@ -415,7 +413,7 @@ ax6.set_xlabel("Utilization rate [" r'$\rho$'"]", fontsize = 15)
 ax6.set_ylabel(r'$S[\bar{W}]$', fontsize = 15)
 ax6.set_title("Standard deviation for M/D/1 - M/D/n Queue simulation", fontsize  = 15)
 ax6.tick_params(axis='both', which='major', labelsize=13)
-fig6.savefig('M_D_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
+# fig6.savefig('M_D_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
 
 
 #%%
@@ -439,6 +437,7 @@ waiting_times_MDN_stacked_20000 = genfromtxt('MDN/MDN_0.5_0.95_20000.csv', delim
 waiting_times_MDN_stacked_50000 = genfromtxt('MDN/MDN_0.5_0.95_50000.csv', delimiter=',')
 waiting_times_MDN_stacked_75000 = genfromtxt('MDN/MDN_0.5_0.95_75000.csv', delimiter=',')
 waiting_times_MDN_stacked_100000 = genfromtxt('MDN/MDN_0.5_0.95_100000.csv', delimiter=',')
+
 std_1000 = np.std(waiting_times_MDN_stacked_1000, axis = 1)
 std_5000 = np.std(waiting_times_MDN_stacked_5000, axis = 1)
 std_10000 = np.std(waiting_times_MDN_stacked_10000, axis = 1)
@@ -447,37 +446,80 @@ std_50000 = np.std(waiting_times_MDN_stacked_50000, axis = 1)
 std_75000 = np.std(waiting_times_MDN_stacked_75000, axis = 1)
 std_100000 = np.std(waiting_times_MDN_stacked_100000, axis = 1)
 
+avg_1000 = np.mean(waiting_times_MDN_stacked_1000, axis = 1)
+avg_5000 = np.mean(waiting_times_MDN_stacked_5000, axis = 1)
+avg_10000 = np.mean(waiting_times_MDN_stacked_10000, axis = 1)
+avg_20000 = np.mean(waiting_times_MDN_stacked_20000, axis = 1)
+avg_50000 = np.mean(waiting_times_MDN_stacked_50000, axis = 1)
+avg_75000 = np.mean(waiting_times_MDN_stacked_75000, axis = 1)
+avg_100000 = np.mean(waiting_times_MDN_stacked_100000, axis = 1)
+
 
 stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range)
+avgs_results, avgs_results_2, avgs_results_3, p_plot_range = Functions.return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range)
 
 #%%
 fig, ax = plt.subplots(figsize = (7,7))
-fig, ax2 = plt.subplots(figsize = (7,7))
-fig, ax3 = plt.subplots(figsize = (7,7))
+fig2, ax2 = plt.subplots(figsize = (7,7))
+fig3, ax3 = plt.subplots(figsize = (7,7))
 
-for i in range(4):
-    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
-    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
-    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+for i in range(6):
+    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = " {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = " {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = " {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
 
-ax.set_xlabel("Number of samples", fontsize = 15)
-ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax.set_title('M/D/1 analysis for increasing sample sizes', fontsize = 16)
 ax.tick_params(axis='both', which='major', labelsize=13)
 ax.legend(fontsize = 13)
+# fig.savefig('STD_M_D_1_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
-ax2.set_xlabel("Number of samples", fontsize = 15)
-ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax2.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax2.set_title('M/D/2 analysis for increasing sample sizes', fontsize = 16)
 ax2.tick_params(axis='both', which='major', labelsize=13)
 ax2.legend(fontsize = 13)
+# fig2.savefig('STD_M_D_2_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
-ax3.set_xlabel("Number of samples", fontsize = 15)
-ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax3.set_title('M/D/4 analysis for increasing sample sizes', fontsize = 16)
 ax3.tick_params(axis='both', which='major', labelsize=13)
 ax3.legend(fontsize = 13)
+# fig3.savefig('STD_M_D_4_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
+#%%
+
+fig, ax = plt.subplots(figsize = (7,7))
+fig2, ax2 = plt.subplots(figsize = (7,7))
+fig3, ax3 = plt.subplots(figsize = (7,7))
+
+for i in range(6):
+    ax.plot(samps, avgs_results[i,:,], marker = "h", linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, avgs_results_2[i,:,],marker = "^",  linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, avgs_results_3[i,:,], marker = "o",linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax.set_title('M/D/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13)
+# fig.savefig('AVGS_M_D_1_QUEUE.png', bbox_inches='tight', dpi = 350 )
+
+ax2.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax2.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax2.set_title('M/D/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13)
+# fig2.savefig('AVGS_M_D_2_QUEUE.png', bbox_inches='tight', dpi = 350 )
+
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax3.set_title('M/D/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13, loc = 'best')
+# fig3.savefig('AVGS_M_D_4_QUEUE.png', bbox_inches='tight', dpi = 350 )
 #%%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #%#%#%#%#%#%#%#%#%#%#%#%#% going to investigate long tailed distribution #%#%#%#%#%#%#%#%#%%#%%#
@@ -573,7 +615,7 @@ ax3.legend(["simulation values for 1 server", "Theoretical result for 1 server",
    "simulation values for 2 server(s)" , "Theoretical result for 2 server(s)", "simulation values for 4 server(s)", \
        "Theoretical result for 4 server(s)", "0.05 std deviation tolerance value"], fontsize =13)
 
-fig3.savefig('M_L_N_QUEUE.png', bbox_inches='tight', dpi = 600)
+# fig3.savefig('M_L_N_QUEUE.png', bbox_inches='tight', dpi = 600)
 
 fig4, ax4 = plt.subplots(figsize = (7,7))
 
@@ -587,11 +629,11 @@ ax4.set_xlabel("Utilization rate [" r'$\rho$'"]", fontsize = 15)
 ax4.set_ylabel(r'$S[\bar{W}]$', fontsize = 15)
 ax4.set_title("Standard deviation for M/L/1 - M/L/n Queue simulation", fontsize  = 16)
 ax4.tick_params(axis='both', which='major', labelsize=13)
-fig4.savefig('M_L_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
+# fig4.savefig('M_L_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
 
 # %%
 #%#%#%#%#%#%#%%#%#%#%#%%#%# INVESTIGATING THE STD DEVIATIONS AS WE INCREASE SAMP SIZE #%#%#%#%#%#%#%#%#%#%#%#%#%
-#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#+#+#+ DETERMINISTIC #%#%#%#%#%#%#%#%%#%#%#%#%#%#%%#%#%#%#%%##
+#+#+#+#+#+#+#+#+#+#++#+#+#+#+#+#+#+#+#+#+ LONGTAILED #%#%#%#%#%#%#%#%%#%#%#%#%#%#%%#%#%#%#%%##
 #+#+#+#+#+#+#+#+#++#+#++#+#+ FIRSTLY LOADING ALL THE DATA #+#+#+#+#+#+#+#+#++##+#++#+#+#+
 n_samples = 200000
 n_servers = np.array([1,2,4])
@@ -623,29 +665,82 @@ stds_results, stds_results_2, stds_results_3, p_plot_range = Functions.return_st
 
 #%%
 fig, ax = plt.subplots(figsize = (7,7))
-fig, ax2 = plt.subplots(figsize = (7,7))
-fig, ax3 = plt.subplots(figsize = (7,7))
+fig2, ax2 = plt.subplots(figsize = (7,7))
+fig3, ax3 = plt.subplots(figsize = (7,7))
 
-for i in range(4):
-    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
-    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
-    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "std deviation for {} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+for i in range(6):
+    ax.plot(samps, stds_results[i,:,], marker = "h", linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, stds_results_2[i,:,],marker = "^",  linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, stds_results_3[i,:,], marker = "o",linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
 
-ax.set_xlabel("Number of samples", fontsize = 15)
-ax.set_ylabel("Standard deviation", fontsize = 15)
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax.set_title('M/L/1 analysis for increasing sample sizes', fontsize = 16)
 ax.tick_params(axis='both', which='major', labelsize=13)
 ax.legend(fontsize = 13)
+# fig.savefig('STDS_M_L_1_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
-ax2.set_xlabel("Number of samples", fontsize = 15)
-ax2.set_ylabel("Standard deviation", fontsize = 15)
+ax2.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax2.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax2.set_title('M/L/2 analysis for increasing sample sizes', fontsize = 16)
 ax2.tick_params(axis='both', which='major', labelsize=13)
 ax2.legend(fontsize = 13)
+# fig2.savefig('STDS_M_L_2_QUEUE.png', bbox_inches='tight', dpi = 600 )
 
-ax3.set_xlabel("Number of samples", fontsize = 15)
-ax3.set_ylabel("Standard deviation", fontsize = 15)
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Standard deviation - " r'$S[\bar{W}]$', fontsize = 15)
 ax3.set_title('M/L/4 analysis for increasing sample sizes', fontsize = 16)
 ax3.tick_params(axis='both', which='major', labelsize=13)
 ax3.legend(fontsize = 13)
+# fig3.savefig('STDS_M_L_4_QUEUE.png', bbox_inches='tight', dpi = 600 )
+# %%
+n_samples = 200000
+n_servers = np.array([1,2,4])
+steps = 10
+arrival_rate = n_servers
+p_min = 0.5
+p_max = 0.95
+p_range = np.linspace(p_min, p_max, steps)
+service_rate = (1 / p_range)
+runs = 30
+
+avg_1000 = np.mean(waiting_times_MLN_stacked_1000, axis = 1)
+avg_5000 = np.mean(waiting_times_MLN_stacked_5000, axis = 1)
+avg_10000 = np.mean(waiting_times_MLN_stacked_10000, axis = 1)
+avg_20000 = np.mean(waiting_times_MLN_stacked_20000, axis = 1)
+avg_50000 = np.mean(waiting_times_MLN_stacked_50000, axis = 1)
+avg_75000 = np.mean(waiting_times_MLN_stacked_75000, axis = 1)
+avg_100000 = np.mean(waiting_times_MLN_stacked_100000, axis = 1)
+
+avgs_results, avgs_results_2, avgs_results_3, p_plot_range = Functions.return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range)
+
+fig, ax = plt.subplots(figsize = (6,6))
+fig2, ax2 = plt.subplots(figsize = (6,6))
+fig3, ax3 = plt.subplots(figsize = (6,6))
+
+for i in range(6):
+    ax.plot(samps, avgs_results[i,:,], marker = "h", linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax2.plot(samps, avgs_results_2[i,:,],marker = "^",  linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+    ax3.plot(samps, avgs_results_3[i,:,], marker = "o",linestyle = '--', label = "{} = {:.2f}".format(r'$\rho$', p_plot_range[i]))
+
+ax.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax.set_title('M/L/1 analysis for increasing sample sizes', fontsize = 16)
+ax.tick_params(axis='both', which='major', labelsize=13)
+ax.legend(fontsize = 13, loc ='upper right')
+# fig.savefig('AVGS_M_L_1_QUEUE.png', bbox_inches='tight', dpi = 300 )
+
+ax2.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax2.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax2.set_title('M/L/2 analysis for increasing sample sizes', fontsize = 16)
+ax2.tick_params(axis='both', which='major', labelsize=13)
+ax2.legend(fontsize = 13, loc ='upper right')
+# fig2.savefig('AVGS_M_L_2_QUEUE.png', bbox_inches='tight', dpi = 300 )
+
+ax3.set_xlabel("Number of samples(customers)", fontsize = 15)
+ax3.set_ylabel("Waiting times - "r'$E[\bar{W}]$', fontsize = 15)
+ax3.set_title('M/L/4 analysis for increasing sample sizes', fontsize = 16)
+ax3.tick_params(axis='both', which='major', labelsize=13)
+ax3.legend(fontsize = 13 , loc ='upper right')
+# fig3.savefig('AVGS_M_L_4_QUEUE.png', bbox_inches='tight', dpi = 300 )
 # %%

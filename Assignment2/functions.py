@@ -71,12 +71,13 @@ def SPTF(rho, mu, n, upp=100):
 
 def return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, std_75000, std_100000, p_range):
     
+
     stds_results= np.zeros((1, 7))
     stds_results_2= np.zeros((1, 7))
     stds_results_3= np.zeros((1, 7))
     p_plot_range = []
     for i in range(4,10):
-
+        
         res = []
         res1 = []
         res2 = []
@@ -105,3 +106,41 @@ def return_stds_formatting(std_1000, std_5000, std_10000, std_20000, std_50000, 
     stds_results_3 = stds_results_3[1:]
 
     return stds_results, stds_results_2, stds_results_3, p_plot_range
+
+def return_avgs_formatting(avg_1000, avg_5000, avg_10000, avg_20000, avg_50000, avg_75000, avg_100000, p_range):
+    
+
+    avgs_results= np.zeros((1, 7))
+    avgs_results_2= np.zeros((1, 7))
+    avgs_results_3= np.zeros((1, 7))
+    p_plot_range = []
+    for i in range(4,10):
+        
+        res = []
+        res1 = []
+        res2 = []
+        p_plot_range.append(p_range[i])
+        res.append([avg_1000[i],avg_5000[i], avg_10000[i], avg_20000[i], avg_50000[i], \
+            avg_75000[i], avg_100000[i]])
+
+        res1.append([avg_1000[i+10],avg_5000[i+10], avg_10000[i+10], avg_20000[i+10], avg_50000[i+10], \
+        avg_75000[i+10], avg_100000[i+10]])
+
+        res2.append([avg_1000[i+20],avg_5000[i+20], avg_10000[i+20], avg_20000[i+20], avg_50000[i+20], \
+        avg_75000[i+20], avg_100000[i+20]])
+        
+        res = np.array(res)
+        res = res.reshape(1,7)
+        res1 = np.array(res1)
+        res1 = res1.reshape(1,7)
+        res2 = np.array(res2)
+        res2 = res2.reshape(1,7)
+        avgs_results = np.concatenate((avgs_results, res))
+        avgs_results_2 = np.concatenate((avgs_results_2, res1))
+        avgs_results_3 = np.concatenate((avgs_results_3, res2))
+
+    avgs_results = avgs_results[1:]
+    avgs_results_2 = avgs_results_2[1:]
+    avgs_results_3 = avgs_results_3[1:]
+
+    return avgs_results, avgs_results_2, avgs_results_3, p_plot_range
