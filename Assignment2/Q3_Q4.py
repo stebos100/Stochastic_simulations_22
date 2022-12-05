@@ -129,38 +129,42 @@ for i in range(len(n_servers)):
         waiting_times_rho_s[i, j, :] = setup1.waiting_times[:n_samples]
 # np.save(f'results/waiting_times_rho_s', waiting_times_rho_s)
 #%%
-n_samples = 200000
+n_samples = 00
 n_servers = np.array([1,2,4])
-steps = 20
+steps = 10
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-runs = 25
+runs = 30
 
 waiting_times_SJF = np.zeros((3, steps, n_samples))
 waiting_times_SJF_stacked = np.zeros((1, runs))
-waiting_times_SJF_stacked.shape
 
+waiting_times_SJF_stacked.shape
+samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
 
 #%%
-# for i in range(len(n_servers)):
-#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
-#         waiting_times_SJF_stacked_temp = np.zeros((1, n_samples))
-#         for k in range(runs):
-#             env = simpy.Environment()
-#             servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
-#             waiting_times = []
-#             setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, n_samples,random.expovariate)
-#             env.run(until=setup1.n_samples_reached)            
-#             waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:n_samples]))   
-#         appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
-#         apend = appending.reshape(1, appending.shape[0])
-#         waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
+for x in samps:
+    print("now starting with sample {}".format(x))
+    waiting_times_SJF_stacked = np.zeros((1, runs))
+    for i in range(len(n_servers)):
+        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]}'):
+            waiting_times_SJF_stacked_temp = np.zeros((1, x))
+            for k in range(runs):
+                env = simpy.Environment()
+                servers1 = simpy.PriorityResource(env, capacity=n_servers[i])
+                waiting_times = []
+                setup1 = Setup_shortestjob(env, arrival_rate[i], service_rate[j], servers1, waiting_times, x,random.expovariate)
+                env.run(until=setup1.n_samples_reached)            
+                waiting_times_SJF_stacked_temp = np.vstack((waiting_times_SJF_stacked_temp, setup1.waiting_times[:x]))   
+            appending = np.mean(waiting_times_SJF_stacked_temp[1:], axis = 1)
+            apend = appending.reshape(1, appending.shape[0])
+            waiting_times_SJF_stacked = np.vstack((waiting_times_SJF_stacked,apend))
 
-# waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
-# np.savetxt("SJF_0.5_0.95.csv", waiting_times_SJF_stacked, delimiter=",")
+    waiting_times_SJF_stacked = waiting_times_SJF_stacked[1:]
+    np.savetxt("SJF_0.5_0.95_{}.csv".format(x), waiting_times_SJF_stacked, delimiter=",")
 #%%
 waiting_times_SJF_stacked = genfromtxt('SJF_0.5_0.95.csv', delimiter=',')
 relavant_std_MM = np.std(waiting_times_SJF_stacked, axis = 1)
@@ -209,39 +213,55 @@ ax2.set_title("Standard deviation for SJFS/1 - SJFS/n Queuing simulation", fonts
 ax2.tick_params(axis='both', which='major', labelsize=12)
 #%%
 #%% 
+waiting_times_SJF_stacked_10000 = genfromtxt('SJF_0.5_0.95_10000.csv', delimiter=',')
+waiting_times_SJF_stacked_50000 = genfromtxt('SJF_0.5_0.95_50000.csv', delimiter=',')
+waiting_times_SJF_stacked_100000 = genfromtxt('SJF_0.5_0.95_100000.csv', delimiter=',')
+std_10000 = np.std(waiting_times_SJF_stacked_10000, axis = 1)
+std_50000 = np.std(waiting_times_SJF_stacked_50000, axis = 1)
+std_100000 = np.std(waiting_times_SJF_stacked_100000, axis = 1)
+
+plt.scatter(p_range[9], std_10000[9])
+plt.scatter(p_range[9], std_50000[9])
+plt.scatter(p_range[9], std_100000[9])
+#%%
 #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%
 #%#%#%#%#%#%#%#%#%%#%#%# investigating deterministic distributions #%#%#%#%#%#%#%#%#%%#%#%##%#%#%#%#%#%#%#%#%%#%#%#
 #global variables
 # %%
 n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 20
+steps = 10
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-runs = 25
+runs = 30
 
 waiting_times_MDN_stacked = np.zeros((1, runs))
 
 #%%
-# for i in range(len(n_servers)):
-#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
-#         waiting_times_MDN_stacked_temp = np.zeros((1, n_samples))
-#         for k in range(runs):
-#             env = simpy.Environment()
-#             servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
-#             waiting_times = []
-#             setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, n_samples,'deterministic')
-#             env.run(until=setup3.num_samples_count)
-#             waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup3.waiting_times[:n_samples]))   
-#         appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
-#         apend = appending.reshape(1, appending.shape[0])
-#         waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
 
-# waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
-# np.savetxt("MDN_0.5_0.95.csv", waiting_times_MDN_stacked, delimiter=",")
+samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
+for x in samps:
+    print("currently at {} sample range".format(x))
+    waiting_times_MDN_stacked = np.zeros((1, runs))
+    for i in range(len(n_servers)):
+        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+            waiting_times_MDN_stacked_temp = np.zeros((1, x))
+            for k in range(runs):
+                env = simpy.Environment()
+                servers3 = simpy.PriorityResource(env, capacity=n_servers[i])
+                waiting_times = []
+                setup3 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers3, waiting_times, x,'deterministic')
+                env.run(until=setup3.num_samples_count)
+                waiting_times_MDN_stacked_temp = np.vstack((waiting_times_MDN_stacked_temp, setup3.waiting_times[:x]))   
+            appending = np.mean(waiting_times_MDN_stacked_temp[1:], axis = 1)
+            apend = appending.reshape(1, appending.shape[0])
+            waiting_times_MDN_stacked = np.vstack((waiting_times_MDN_stacked,apend))
+
+    waiting_times_MDN_stacked = waiting_times_MDN_stacked[1:]
+    np.savetxt("MDN_0.5_0.95_{}.csv".format(x), waiting_times_MDN_stacked, delimiter=",")
 
 #%%
 waiting_times_MDN_stacked = genfromtxt("MDN_0.5_0.95.csv", delimiter=',')
@@ -311,33 +331,37 @@ fig6.savefig('M_D_N_QUEUE_STD.png', bbox_inches='tight', dpi = 600 )
 #%%
 n_samples = 200000
 n_servers = np.array([1,2,4])
-steps = 20
+steps = 10
 arrival_rate = n_servers
 p_min = 0.5
 p_max = 0.95
 p_range = np.linspace(p_min, p_max, steps)
 service_rate = (1 / p_range)
-runs = 25
+runs = 30
 
 waiting_times_MLN_stacked = np.zeros((1, runs))
 
 #%%
-# for i in range(len(n_servers)):
-#     for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
-#         waiting_times_MLN_stacked_temp = np.zeros((1, n_samples))
-#         for k in range(runs):
-#             env = simpy.Environment()
-#             servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
-#             waiting_times = []
-#             setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, n_samples,'longtail')
-#             env.run(until=setup2.num_samples_count)
-#             waiting_times_MLN_stacked_temp = np.vstack((waiting_times_MLN_stacked_temp, setup2.waiting_times[:n_samples]))   
-#         appending = np.mean(waiting_times_MLN_stacked_temp[1:], axis = 1)
-#         apend = appending.reshape(1, appending.shape[0])
-#         waiting_times_MLN_stacked = np.vstack((waiting_times_MLN_stacked,apend))
+samps = [1000, 5000, 10000, 20000, 50000, 75000, 100000]
+for x in samps:
+    print("currently at {} sample range".format(x))
+    waiting_times_MLN_stacked = np.zeros((1, runs))
+    for i in range(len(n_servers)):
+        for j in tqdm(range(steps), desc=f'calculate waiting times for n_server {n_servers[i]} and step {j}'):
+            waiting_times_MLN_stacked_temp = np.zeros((1, x))
+            for k in range(runs):
+                env = simpy.Environment()
+                servers2 = simpy.PriorityResource(env, capacity=n_servers[i])
+                waiting_times = []
+                setup2 = DES_MD_LT(env, arrival_rate[i], service_rate[j], servers2, waiting_times, x,'longtail')
+                env.run(until=setup2.num_samples_count)
+                waiting_times_MLN_stacked_temp = np.vstack((waiting_times_MLN_stacked_temp, setup2.waiting_times[:x]))   
+            appending = np.mean(waiting_times_MLN_stacked_temp[1:], axis = 1)
+            apend = appending.reshape(1, appending.shape[0])
+            waiting_times_MLN_stacked = np.vstack((waiting_times_MLN_stacked,apend))
 
-# waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
-# np.savetxt("MLN_0.5_0.95.csv", waiting_times_MLN_stacked, delimiter=",")
+    waiting_times_MLN_stacked = waiting_times_MLN_stacked[1:]
+    np.savetxt("MLN_0.5_0.95_{}.csv".format(x), waiting_times_MLN_stacked, delimiter=",")
 #%%
 
 waiting_times_MLN_stacked = genfromtxt('MLN_0.5_0.95.csv', delimiter=',')
