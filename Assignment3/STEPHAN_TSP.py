@@ -57,7 +57,6 @@ def graph_plotter_normal(df, name):
 route_51 = pd.read_csv('TSP-Configurations/eil51.tsp.txt', delimiter=' ', index_col= 0, header = None)
 route_51 = arrange_df_for_plotting(route_51)
 
-
 route_280 = pd.read_csv('TSP-Configurations/a280.tsp.txt', delimiter=' ', index_col= 0, header = None)
 route_280 = arrange_df_for_plotting(route_280)
 
@@ -121,15 +120,46 @@ def Temperature(n, a, b):
 def fast_Temp(t, n):
     T = t / float(n + 1)
     return T
+    
+def get_best_schedule_and_distance(name, distance_matrix):
+    dist = 0
+
+    if name == "51":
+        best_route = pd.read_csv('TSP-Configurations/eil51.opt.tour.txt', delimiter=' ', header = None)
+        best_route.columns=['path']
+        best = best_route["path"].values.tolist()
+
+        dist = distance(distance_matrix, best)
+        return best, dist
+
+    elif name == "280":
+        best_route = pd.read_csv('TSP-Configurations/a280.opt.tour.txt', delimiter=' ', header = None)
+        best_route.columns=['path']
+        best = best_route["path"].values.tolist()
+
+        dist = distance(distance_matrix, best)
+        return best, dist
+    elif name == "442":
+        best_route = pd.read_csv('TSP-Configurations/pcb442.opt.tour.txt', delimiter=' ', header = None)
+        best_route.columns=['path']
+        best = best_route["path"].values.tolist()
+
+        dist = distance(distance_matrix, best)
+        return best, dist
 
 #%%
-
+dx = generate_distance_matrix(route_442)
+#%%
+a,b = get_best_schedule_and_distance("442", dx)
+b
+#%%
 def two_opt_2(Markov_chain_length, inital_route, distance_matrix,t0, stop):
 
     dist = distance(distance_matrix , inital_route)
     T = t0
     cost_record = [dist]
     routes = []
+    temps =[]
 
     best_route_cost = dist
     best_route = inital_route
@@ -175,6 +205,7 @@ def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop):
     T = t0
     cost_record = [dist]
     routes = []
+    temps = []
 
     best_route_cost = dist
     best_route = inital_route
@@ -204,33 +235,31 @@ def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop):
         routes.append(best_route)
 
         T = T - t0/stop
+        temps.append(T)
 
-    return routes, best_route, cost_record
+    return routes, best_route, cost_record, temps
 # %%
 path = generate_initial_path(route_51, False)
+path_2 = generate_initial_path(route_280, False)
 dx = generate_distance_matrix(route_51)
-#%%
-# a,b,c = two_opt_2(20, path, dx, 50, 80)
 
 #%%
-a,b,c = two_opt(1000, path, dx, 10, 1000)
+routes, best_route, cost_record, temps = two_opt(100, path, dx, 5, 1000)
 #%%
-plt.plot(c)
 
-# %%
-a[-1]
-# %%
-c[-1]
-# %%
+plt.plot(cost_record)
+
 #%%
-best_route = pd.read_csv('TSP-Configurations/eil51.opt.tour.txt', delimiter=' ', header = None)
-best_route.columns=['path']
-best_route
+len(cost_record)
 # %%
-best = best_route["path"].values.tolist()
-# %%
-best
-# %%
-dis = distance(dx, a[-1])
-dis
+#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
+#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
+#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
+#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
+
+# 1.) 
+#
+#
+
+
 # %%
