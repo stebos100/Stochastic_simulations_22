@@ -10,6 +10,7 @@ import random
 sns.set_theme()
 from tqdm import tqdm
 from numba import jit
+from statistics import mean
 
 #%%
 """going to firstly begin by investigating the various maps assocatied with the data, 
@@ -147,69 +148,105 @@ def get_best_schedule_and_distance(name, distance_matrix):
         dist = distance(distance_matrix, best)
         return best, dist
 
+def cooling_schedule(k, cooling, T0):
+    if cooling == "exponential":
+        alpha = 0.8
+        T = T0 *(alpha**k)     #0.8 < alpha < 0.9
+    
+    elif cooling == "linear":
+        alpha = 0.5 
+        T = T0 / (1+alpha*k)  #alpha > 0
+
+    elif cooling == "logarithmic":
+        alpha = 1.5
+        T = T0 / (1 + alpha * np.log(1+k)) #alpha > 1
+        
+    elif cooling == "quadratic":
+        alpha = 0.5
+        T = T0 / (1 + (alpha*k**2))  #alpha > 0
+        
+    else:
+        return ("Please give a valid cooling schedule")
+        
+    return T
+
+def calculate_confidence_interval(matrix):
+    """This function generates a 95% confidence interval for a matrix of areas calculated using MC simulations
+    Args:
+        matrix (numpy array 2D): matrix containing all area computations
+    Returns:
+        numpy array: array of confidence intervals for the average of each simulation
+    """
+
+    cis = np.ones(shape = (1,2))
+
+    for i in matrix:
+        data = i 
+        interval = np.array(st.t.interval(alpha=0.95, df=(matrix.shape[1])-1, loc=np.mean(data), scale=st.sem(data)))
+        interval = interval.reshape(1,2)
+        cis = np.vstack((cis, interval))
+
+    return cis
 #%%
-dx = generate_distance_matrix(route_442)
-#%%
-a,b = get_best_schedule_and_distance("442", dx)
-b
-#%%
-def two_opt_2(Markov_chain_length, inital_route, distance_matrix,t0, stop):
 
-    dist = distance(distance_matrix , inital_route)
-    T = t0
-    cost_record = [dist]
-    routes = []
-    temps =[]
+# def two_opt_2(Markov_chain_length, inital_route, distance_matrix,t0, stop, cooling, alpha):
 
-    best_route_cost = dist
-    best_route = inital_route
-    c = 0
-    for k in tqdm(range(stop)):
-        for i in range(Markov_chain_length):
-            for swap_first in range(1, len(inital_route) - 2):
-                for swap_last in range(swap_first + 1, len(inital_route) - 1):
+#     dist = distance(distance_matrix , inital_route)
+#     T = t0
+#     cost_record = [dist]
+#     routes = []
+#     temps =[]
 
-                    before_start = best_route[swap_first - 1]
-                    start = best_route[swap_first]
-                    end = best_route[swap_last]
-                    after_end = best_route[swap_last+1]
-                    before = distance_matrix[before_start][start] + distance_matrix[end][after_end]
-                    after = distance_matrix[before_start][end] + distance_matrix[start][after_end]
+#     best_route_cost = dist
+#     best_route = inital_route
+#     c = 0
+#     for k in tqdm(range(stop)):
+#         for i in range(Markov_chain_length):
+#             for swap_first in range(1, len(inital_route) - 2):
+#                 for swap_last in range(swap_first + 1, len(inital_route) - 1):
 
-                    new_route_temp = swap(best_route, swap_first, swap_last)
-                    new_distance_temp = distance(distance_matrix, new_route_temp)
-                    difference_in_cost = best_route_cost - new_distance_temp
+#                     before_start = best_route[swap_first - 1]
+#                     start = best_route[swap_first]
+#                     end = best_route[swap_last]
+#                     after_end = best_route[swap_last+1]
+#                     before = distance_matrix[before_start][start] + distance_matrix[end][after_end]
+#                     after = distance_matrix[before_start][end] + distance_matrix[start][after_end]
 
-                    if after < before:
-                        best_route = new_route_temp
-                        best_route_cost = new_distance_temp
+#                     new_route_temp = swap(best_route, swap_first, swap_last)
+#                     new_distance_temp = distance(distance_matrix, new_route_temp)
+#                     difference_in_cost = best_route_cost - new_distance_temp
 
-                    else:
-                        # Acceptance probability
-                        P = min(np.exp(difference_in_cost/T), 1)
-                        # Accept or not?
-                        if random.uniform(0,1) < P:
-                            best_route = new_route_temp
-                            best_route_cost = new_distance_temp
-        T = T - t0/stop
-        c += 1
-        cost_record.append(distance(distance_matrix, best_route))
-        routes.append(best_route)
+#                     if after < before:
+#                         best_route = new_route_temp
+#                         best_route_cost = new_distance_temp
 
-    return routes, best_route, cost_record
+#                     else:
+#                         # Acceptance probability
+#                         P = min(np.exp(difference_in_cost/T), 1)
+#                         # Accept or not?
+#                         if random.uniform(0,1) < P:
+#                             best_route = new_route_temp
+#                             best_route_cost = new_distance_temp
+#         T = T - t0/stop
+#         c += 1
+#         cost_record.append(distance(distance_matrix, best_route))
+#         routes.append(best_route)
+
+#     return routes, best_route, cost_record
     
 #%%
-def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop):
+def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop, cooling):
 
     dist = distance(distance_matrix , inital_route)
     T = t0
     cost_record = [dist]
-    routes = []
-    temps = []
+    routes = [inital_route]
+    temps = [t0]
 
     best_route_cost = dist
     best_route = inital_route
     k = 0
+    probs = [0]
     for k in tqdm(range(stop)):
         k+=1
         for i in range(Markov_chain_length):
@@ -226,6 +263,7 @@ def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop):
                     else:
                         # Acceptance probability
                         P = min(np.exp(difference_in_cost/T), 1)
+                        probs.append(P)
                         # Accept or not?
                         if random.uniform(0,1) < P:
                             best_route = new_route
@@ -234,32 +272,216 @@ def two_opt(Markov_chain_length, inital_route, distance_matrix,t0, stop):
         cost_record.append(distance(distance_matrix, best_route))
         routes.append(best_route)
 
-        T = T - t0/stop
-        temps.append(T)
+        if cooling == None:
+            T = T 
+            temps.append(T)
+        elif cooling == "normal":
+            T = T - t0/stop
+            temps.append(T)
+        else:
+            T = cooling_schedule(k, cooling, t0)
+            temps.append(T)
 
-    return routes, best_route, cost_record, temps
+    return routes, best_route, cost_record, temps, probs
 # %%
-path = generate_initial_path(route_51, False)
 path_2 = generate_initial_path(route_280, False)
-dx = generate_distance_matrix(route_51)
+dx_2 = generate_distance_matrix(route_280)
 
-#%%
-routes, best_route, cost_record, temps = two_opt(100, path, dx, 5, 1000)
-#%%
-
-plt.plot(cost_record)
-
-#%%
-len(cost_record)
 # %%
-#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
-#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
-#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
-#%#%#%#%#%#%%#%#%#%%##%#%%#%# TO DO #%#%#%#%#%#%%#%#%#%#%#%#%#%#%%#
+markov_chain_length = 100
+num_iterations = 2000
+T0 = [10, 50, 100, 500, 1000,2000, 3000]
+cooling = "exponential"
+initial = np.arange(0, num_iterations +1)
+results = pd.DataFrame()
+results["number"] = initial
+probabilities = []
+#%%
+for i in range(len(T0)):
+    routes, best_route, cost_record, temps, probs = two_opt(markov_chain_length, path_2, dx_2, T0[i], num_iterations, cooling)
+    probabilities.append(mean(probs))
 
-# 1.) 
-#
-#
+    data = {
+   'routes {}'.format(T0[i]): routes,
+   'cost record {}'.format(T0[i]): cost_record,
+   'temperatures {}'.format(T0[i]): temps
+    }
+
+    dataframe = pd.DataFrame.from_dict(data)
+
+    results = pd.concat([results, dataframe], axis=1)
+
+results.to_csv("EXP_mc500_T0.csv", index=False)
+#%%
+results_EXP = pd.read_csv("EXP_mc500_T0.csv")
+#%%
+probabilities
+#%%
+fig, ax = plt.subplots(figsize = (6,6))
+sns.set_theme(style="darkgrid")
+for i in range(len(T0)):
+    s = sns.lineplot(x="number", y='cost record {}'.format(T0[i]), data=results_EXP, label = "Inital temperature {}".format(T0[i]))
+
+ax.set_xlabel('number of simulations', fontsize = 14)
+ax.set_ylabel('Distance of shortest path', fontsize = 14)
+ax.set_title("Convergent behaviour for varying  T0", fontsize = 16)
+ax.legend(fontsize = 13)
+#%%
+markov_chain_length = 100
+num_iterations = 2000
+T0 = [10, 50, 100, 500, 1000,2000, 3000]
+cooling = "logarithmic"
+initial = np.arange(0, num_iterations +1)
+results = pd.DataFrame()
+results["number"] = initial
+probs_log = []
+
+for i in range(len(T0)):
+    routes, best_route, cost_record, temps, probs = two_opt(markov_chain_length, path_2, dx_2, T0[i], num_iterations, cooling )
+    probs_log.append(mean(probs))
+
+    data = {
+   'routes {}'.format(T0[i]): routes,
+   'cost record {}'.format(T0[i]): cost_record,
+   'temperatures {}'.format(T0[i]): temps
+    }
+
+    dataframe = pd.DataFrame.from_dict(data)
+
+    results = pd.concat([results, dataframe], axis=1)
+
+results.to_csv("LOG_mc500_T0.csv", index=False)
+#%%
+results_LOG = pd.read_csv("LOG_mc500_T0.csv")
+#%%
+sns.set_theme(style="darkgrid")
+for i in range(len(T0)):
+    sns.lineplot(x="number", y='cost record {}'.format(T0[i]), data=results_LOG, label = "{}".format(T0[i]))
+#%%
+markov_chain_length = 100
+num_iterations = 2000
+T0 = [10, 50, 100, 500, 1000,2000, 3000]
+cooling = "quadratic"
+initial = np.arange(0, num_iterations +1)
+results = pd.DataFrame()
+results["number"] = initial
+probs_log = []
+
+#%%
+for i in range(len(T0)):
+    routes, best_route, cost_record, temps, probs = two_opt(markov_chain_length, path_2, dx_2, T0[i], num_iterations, cooling)
+
+    data = {
+   'routes {}'.format(T0[i]): routes,
+   'cost record {}'.format(T0[i]): cost_record,
+   'temperatures {}'.format(T0[i]): temps
+    }
+
+    dataframe = pd.DataFrame.from_dict(data)
+
+    results = pd.concat([results, dataframe], axis=1)
+
+results.to_csv("QUAD_mc500_T0.csv", index=False)
+#%%
+# results.to_csv("QUAD_mc500_T0.csv", index=False)
+#%%
+results_LINEAR = pd.read_csv("QUAD_mc500_T0.csv")
+
+#%%
+
+sns.set_theme(style="darkgrid")
+for i in range(len(T0)):
+    # sns.lineplot(x="number", y='cost record {}'.format(T0[i]), data=results_QUAD, label = "{}".format(T0[i]))
+    sns.lineplot(x="number", y='cost record {}'.format(T0[i]), data=results_LINEAR, label = "{}".format(T0[i]))
+
+# %%
+from statistics import mean
+markov_chain_length = 50
+num_iterations = np.arange(10, 110, 10)
+num_iterations_2 = np.arange(100, 600, 100)
+num_its = np.concatenate((num_iterations, num_iterations_2), axis = 0)
+T0 = 50
+cooling_schedules = ["exponential", "linear", "logarithmic", "quadratic"]
+sims = 10
+
+#%%
+
+# for j in cooling_schedules:
+#     array = np.ones(shape = (1, num_its.shape[0]))
+#     print("starting with {} cooling".format(j))
+#     vals = []
+#     for i in tqdm(num_its):
+#         print("starting simulation {}".format(i))
+#         cost_r = []
+#         for k in range(sims):
+#             routes, best_route, cost_record, temps = two_opt(markov_chain_length, path_2, dx_2, 50, i, j )
+#             cost_r.append(cost_record[-1])
+
+#         avg = mean(cost_r)
+#         vals.append(avg)
+#     values = np.array(vals)
+#     array = np.vstack((array, values))
+#     np.savetxt("{}_cooling_ITS.csv".format(j), array, delimiter=",")
+# %%
+from numpy import genfromtxt
+expo = genfromtxt("exponential_cooling_ITS.csv", delimiter=',')
+linear = genfromtxt("linear_cooling_ITS.csv", delimiter=',')
+log = genfromtxt("logarithmic_cooling_ITS.csv", delimiter=',')
+quad= genfromtxt("quadratic_cooling_ITS.csv", delimiter=',')
+# %%
+expo[1]
+# %%
+
+plt.plot(num_its, expo[1])
+plt.plot(num_its, log[1])
+plt.plot(num_its, linear[1])
+plt.plot(num_its, quad[1])
+
+#%%
+sns.set_theme(style="darkgrid")
+
+# sns.lineplot(x="number", y='cost record {}'.format(T0[i]), data=results_QUAD, label = "{}".format(T0[i]))
+sns.lineplot(x="simulation", y='cost record  simulation 10 for exponential cooling', data=results_10)
+sns.lineplot(x="simulation", y='cost record  simulation 10 for linear cooling', data=results_10)
+sns.lineplot(x="simulation", y='cost record  simulation 10 for logarithmic cooling', data=results_10)
+sns.lineplot(x="simulation", y='cost record  simulation 10 for quadratic cooling', data=results_10)
 
 
+# %%
+for i in cooling_schedules:
+    sns.violinplot(x="simulation", y='cost record  simulation 10 for {} cooling'.format(i), data=results_10)
+
+# %%
+markov_chain_length = [10, 50, 100, 250, 500, 750, 1000]
+num_iterations = [10, 50, 100, 250, 500, 750, 1000]
+cooling_scheds = ['quadratic']
+T0 = 166
+#%%
+for k in cooling_scheds:
+    print(k)
+    chain_heatmap = np.zeros((len(markov_chain_length), len(num_iterations)))
+    all_results_heatmap = []
+    for i in range(len(markov_chain_length)):
+        for j in range(len(num_iterations)):
+            a,b,c, d, e = two_opt(markov_chain_length[i], path_2, dx_2, T0, num_iterations[j],k)
+            chain_heatmap[i,j] = c[-1]
+            all_results_heatmap.append(c)
+
+    np.savetxt("{}_markovchain_vs_its_heatmap_T0=166".format(k), chain_heatmap)
+# %%
+from numpy import genfromtxt
+exponential_heatmap = genfromtxt('logarithmic_markovchain_vs_its_heatmap_T0=166')
+
+#%%
+exponential_heatmap
+#%%
+ax = sns.heatmap(exponential_heatmap)
+ax.invert_yaxis()
+ax.set_xlabel("Iterations", fontsize = 15)
+ax.set_ylabel("Markov chain lenght", fontsize = 15)
+ax.set_xticklabels(num_iterations, fontsize = 13)
+ax.set_yticklabels(num_iterations, fontsize = 13)
+ax.set_title("route280 minimum eucledian distance", fontsize = 15)
+#plt.savefig("Figures/Heatmap_route_280_T0=70.png")
+plt.show()
 # %%
